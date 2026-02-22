@@ -1,6 +1,6 @@
 {
   "name": "explainthisrepo",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "A CLI developer tool to explain any GitHub repository in plain English",
   "license": "MIT",
   "type": "module",
@@ -37,7 +37,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/cli.js",
-    "prepublishOnly": "npm run build"
+    "sync-meta": "cp ../README.md README.md && cp ../LICENSE LICENSE",
+    "prepublishOnly": "npm run sync-meta && npm run build"
   },
   "engines": {
     "node": ">=20"
