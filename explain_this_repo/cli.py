@@ -6,6 +6,8 @@ import urllib.request
 from importlib.metadata import PackageNotFoundError, version
 from urllib.parse import urlparse
 
+from rich.console import Console
+
 from explain_this_repo.generate import generate_explanation
 from explain_this_repo.github import fetch_languages, fetch_readme, fetch_repo
 from explain_this_repo.local_reader import read_local_repo_signal_files
@@ -16,11 +18,12 @@ from explain_this_repo.stack_detector import detect_stack
 from explain_this_repo.stack_printer import print_stack
 from explain_this_repo.writer import write_output
 
+console = Console()
+
 
 def resolve_repo_target(target: str) -> tuple[str, str]:
     target = target.strip()
 
-    # Fix common scheme typos
     if target.startswith("https//"):
         target = target.replace("https//", "https://", 1)
     if target.startswith("http//"):
@@ -231,7 +234,7 @@ def main():
 
     if local:
         local_path = os.path.abspath(target)
-        print(f"Analyzing local repository: {target}")
+        print(f"Analyzing local directory: {target}")
     else:
         try:
             owner, repo = resolve_repo_target(target)
@@ -239,21 +242,21 @@ def main():
             print(f"error: {e}")
             raise SystemExit(1)
 
-        print(f"Fetching {owner}/{repo}...")
-
     if args.stack:
 
         if local:
-            read_result = read_local_repo_signal_files(local_path)
+            with console.status("Reading repository files…", spinner="dots"):
+                read_result = read_local_repo_signal_files(local_path)
             languages = {}
         else:
             try:
-                read_result = read_repo_signal_files(owner, repo)
-                languages = fetch_languages(owner, repo)
+                with console.status(f"Fetching {owner}/{repo}…", spinner="dots"):
+                    read_result = read_repo_signal_files(owner, repo)
+                    languages = fetch_languages(owner, repo)
             except Exception as e:
                 print(f"error: {e}")
                 raise SystemExit(1)
-            
+
         report = detect_stack(
             languages=languages,
             tree=read_result.tree,
@@ -266,8 +269,9 @@ def main():
 
     if not local:
         try:
-            repo_data = fetch_repo(owner, repo)
-            readme = fetch_readme(owner, repo)
+            with console.status(f"Fetching {owner}/{repo}…", spinner="dots"):
+                repo_data = fetch_repo(owner, repo)
+                readme = fetch_readme(owner, repo)
         except Exception as e:
             print(f"error: {e}")
             raise SystemExit(1)
@@ -278,10 +282,17 @@ def main():
     # QUICK MODE
     if args.quick:
         if local:
-            read_result = read_local_repo_signal_files(local_path)
-            # Use README from filesystem if present
+            with console.status("Reading repository files…", spinner="dots"):
+                read_result = read_local_repo_signal_files(local_path)
             readme_content = read_result.key_files.get(
-                next((k for k in read_result.key_files if k.lower().startswith("readme")), ""),
+                next(
+                    (
+                        k
+                        for k in read_result.key_files
+                        if k.lower().startswith("readme")
+                    ),
+                    "",
+                ),
                 None,
             )
             prompt = build_quick_prompt(
@@ -296,9 +307,8 @@ def main():
                 readme=readme,
             )
 
-        print("Generating explanation...")
-
-        output = generate_with_exit(prompt)
+        with console.status("Generating explanation…", spinner="dots"):
+            output = generate_with_exit(prompt)
 
         print("Quick summary 🎉")
         print(output.strip())
@@ -308,9 +318,11 @@ def main():
     if args.simple:
 
         if local:
-            read_result = read_local_repo_signal_files(local_path)
+            with console.status("Reading repository files…", spinner="dots"):
+                read_result = read_local_repo_signal_files(local_path)
         else:
-            read_result = safe_read_repo_files(owner, repo)
+            with console.status("Reading repository files…", spinner="dots"):
+                read_result = safe_read_repo_files(owner, repo)
 
         prompt = build_simple_prompt(
             repo_name=local_path if local else repo_data.get("full_name"),
@@ -319,18 +331,20 @@ def main():
             tree_text=read_result.tree_text if read_result else None,
         )
 
-        print("Generating explanation...")
-
-        output = generate_with_exit(prompt)
+        with console.status("Generating explanation…", spinner="dots"):
+            output = generate_with_exit(prompt)
 
         print("Simple summary 🎉")
         print(output.strip())
         return
-    
+
+    # NORMAL / DETAILED MODE
     if local:
-        read_result = read_local_repo_signal_files(local_path)
+        with console.status("Reading repository files…", spinner="dots"):
+            read_result = read_local_repo_signal_files(local_path)
     else:
-        read_result = safe_read_repo_files(owner, repo)
+        with console.status("Reading repository files…", spinner="dots"):
+            read_result = safe_read_repo_files(owner, repo)
 
     prompt = build_prompt(
         repo_name=local_path if local else repo_data.get("full_name"),
@@ -341,9 +355,8 @@ def main():
         files_text=read_result.files_text if read_result else None,
     )
 
-    print("Generating explanation...")
-
-    output = generate_with_exit(prompt)
+    with console.status("Generating explanation…", spinner="dots"):
+        output = generate_with_exit(prompt)
 
     print("Writing EXPLAIN.md...")
     write_output(output)
