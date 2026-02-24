@@ -169,9 +169,9 @@ async function main(): Promise<void> {
 
   program
     .name("explainthisrepo")
-    .description("Explain GitHub repositories in plain English")
+    .description("Explain any codebase in plain English")
     .version(getPkgVersion(), "-v, --version", "Show version")
-    .argument("[repository]", "GitHub repository (owner/repo or URL) or local path")
+    .argument("[repository]", "GitHub repository (owner/repo or URL) or local directories")
     .option("--doctor", "Run diagnostics")
     .option("--quick", "Quick summary mode")
     .option("--simple", "Simple summary mode")

@@ -155,7 +155,7 @@ def generate_with_exit(prompt: str) -> str:
 def main():
     parser = argparse.ArgumentParser(
         prog="explainthisrepo",
-        description="Explain GitHub repositories in plain English",
+        description="Explain any codebase in plain English",
         epilog="Examples:\n"
         "  explainthisrepo owner/repo\n"
         "  explainthisrepo https://github.com/owner/repo\n"
@@ -197,7 +197,7 @@ def main():
     parser.add_argument(
         "repository",
         nargs="?",
-        help="GitHub repository (owner/repo or URL) or local path",
+        help="GitHub repository (owner/repo or URL) or local directories",
     )
 
     mode_group = parser.add_mutually_exclusive_group()

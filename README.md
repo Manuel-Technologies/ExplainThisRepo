@@ -1,6 +1,6 @@
 # ExplainThisRepo
 
-ExplainThisRepo is a CLI that generates plain-English explanations of public GitHub repositories and local directories by analyzing project structure, README content, and high signal files.
+ExplainThisRepo is a CLI that generates plain-English explanations of any codebase (GitHub repositories and local directories) by analyzing project structure, README content, and high signal files.
 
 It helps developers quickly understand unfamiliar codebases by deriving architectural explanations from real project structure and code signals, producing a clear, structured `EXPLAIN.md`.
 
