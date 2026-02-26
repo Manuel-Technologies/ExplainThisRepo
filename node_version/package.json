@@ -1,6 +1,6 @@
 {
   "name": "explainthisrepo",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "CLI that generates plain English explanations of any codebase",
   "license": "MIT",
   "type": "module",
