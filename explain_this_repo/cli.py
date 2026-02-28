@@ -301,7 +301,7 @@ def main():
 
     args = parser.parse_args()
 
-    if args.command == "init":
+    if args.command == "init" and args.repository is None:
         from explain_this_repo.init import run_init
 
         run_init()
@@ -324,6 +324,10 @@ def main():
             raise SystemExit(1)
 
     llm = args.llm
+
+    if args.repository is None and args.command is not None and args.command != "init":
+        args.repository = args.command
+        args.command = None
 
     if not args.repository:
         parser.error("repository argument required (or use 'init') to set up API key")
