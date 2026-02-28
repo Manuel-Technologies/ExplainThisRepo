@@ -114,7 +114,9 @@ def _run_provider_diagnostics(provider: object, provider_name: str) -> bool:
             print(f"- {provider_name}: {line}")
         return False
 
-    print(f"- {provider_name}: doctor() returned unexpected type {type(result).__name__!r}")
+    print(
+        f"- {provider_name}: doctor() returned unexpected type {type(result).__name__!r}"
+    )
     return False
 
 
