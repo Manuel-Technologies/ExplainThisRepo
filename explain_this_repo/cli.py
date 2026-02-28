@@ -88,6 +88,36 @@ def _check_url(url: str, timeout: int = 6) -> tuple[bool, str]:
         return False, f"failed ({type(e).__name__}: {e})"
 
 
+def _run_provider_diagnostics(provider: object, provider_name: str) -> bool:
+
+    try:
+        result = provider.doctor()
+    except AttributeError:
+        print(f"- {provider_name}: no diagnostics implemented")
+        return True
+    except Exception as e:
+        print(f"- {provider_name}: diagnostics raised an unexpected error ({e})")
+        return False
+
+    if isinstance(result, bool):
+        if result:
+            print(f"- {provider_name}: ok")
+        else:
+            print(f"- {provider_name}: checks did not pass")
+        return result
+
+    if isinstance(result, list):
+        if not result:
+            print(f"- {provider_name}: ok")
+            return True
+        for line in result:
+            print(f"- {provider_name}: {line}")
+        return False
+
+    print(f"- {provider_name}: doctor() returned unexpected type {type(result).__name__!r}")
+    return False
+
+
 def run_doctor(llm_override: str | None = None) -> int:
     is_termux = "TERMUX_VERSION" in os.environ or "com.termux" in os.getenv(
         "PREFIX", ""
@@ -112,38 +142,36 @@ def run_doctor(llm_override: str | None = None) -> int:
 
     provider = None
     provider_name = None
+    provider_ok = True
 
     try:
         from explain_this_repo.providers.registry import get_active_provider
 
         provider = get_active_provider(override=llm_override)
         provider_name = getattr(provider, "name", llm_override or "unknown")
-    except ValueError as e:
-        print(f"- provider resolution failed: {e}")
-        print("- skipping provider checks")
-        provider = None
-    except Exception as e:
-        print(f"- could not load provider registry: {e}")
-        print("- skipping provider checks")
-        provider = None
 
-    if provider is None and llm_override is None:
-        print("- no provider configured and no --llm override given")
-        print("- skipping provider checks")
-        print("- run `explainthisrepo init` to configure a provider")
-    elif provider is not None:
-        print(f"- active provider: {provider_name}")
-        try:
-            provider_ok = provider.doctor()
-        except AttributeError:
-            print(f"- {provider_name}: no diagnostics available")
-            provider_ok = True
-        except Exception as e:
-            print(f"- {provider_name}: diagnostics failed ({e})")
+    except ValueError:
+        if llm_override is not None:
+            print(f"- provider '{llm_override}' could not be resolved")
+            print("- check that the provider name is correct and properly installed")
             provider_ok = False
+        else:
+            print("- no provider configured and no --llm override given")
+            print("- skipping provider checks")
+            print("- run `explainthisrepo init` to configure a provider")
 
-        if not provider_ok:
-            print(f"- {provider_name}: checks did not pass")
+    except ImportError as e:
+        print(f"- provider registry could not be loaded (import error): {e}")
+        print("- this is likely a broken installation")
+        provider_ok = False
+
+    except Exception as e:
+        print(f"- provider registry raised an unexpected error: {e}")
+        provider_ok = False
+
+    if provider is not None:
+        print(f"- active provider: {provider_name}")
+        provider_ok = _run_provider_diagnostics(provider, provider_name)
 
     print("\nnotes:")
     if is_termux:
@@ -155,8 +183,7 @@ def run_doctor(llm_override: str | None = None) -> int:
         print("- If PATH is annoying, run:")
         print("  python -m explain_this_repo owner/repo")
 
-    provider_ok_final = provider is not None
-    return 0 if (ok_gh and provider_ok_final) else 1
+    return 0 if (ok_gh and provider_ok) else 1
 
 
 def safe_read_repo_files(owner: str, repo: str):

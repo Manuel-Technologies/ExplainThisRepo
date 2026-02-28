@@ -15,6 +15,10 @@ _PROVIDER_REGISTRY: Dict[str, str] = {
 _runtime_override: Optional[str] = None
 
 
+def list_providers() -> set[str]:
+    return set(_PROVIDER_REGISTRY.keys())
+
+
 def set_runtime_provider(name: str) -> None:
 
     global _runtime_override
