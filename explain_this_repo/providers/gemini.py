@@ -1,5 +1,3 @@
-# explain_this_repo/providers/gemini.py
-
 from __future__ import annotations
 
 from typing import Any, Dict
@@ -13,16 +11,19 @@ class GeminiProvider(LLMProvider):
     name = "gemini"
 
     def __init__(self, config: Dict[str, Any]) -> None:
+        self.config = config
         self.api_key = config.get("api_key")
         self.model = config.get("model", DEFAULT_MODEL)
+        self._client = None
 
-        if not self.api_key:
+        self.validate_config()
+
+    def validate_config(self) -> None:
+        if not self.api_key or not str(self.api_key).strip():
             raise LLMProviderError(
                 "Gemini provider requires an API key.\n"
-                "Run 'explainthisrepo init' or set providers.gemini.api_key."
+                "Run `explainthisrepo init` or set providers.gemini.api_key."
             )
-
-        self._client = None
 
     def _get_client(self):
         if self._client is not None:
