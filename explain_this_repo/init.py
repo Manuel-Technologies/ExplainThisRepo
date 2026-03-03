@@ -45,7 +45,7 @@ def _prompt_provider_config(provider: str) -> Dict[str, str]:
         return {"api_key": key}
 
     if provider == "ollama":
-        model = input("Ollama model (e.g. llama3): ").strip()
+        model = input("Ollama model (e.g. llama3, glm-5:cloud, gemma3:4b): ").strip()
         if not model:
             raise RuntimeError("Model cannot be empty")
 
