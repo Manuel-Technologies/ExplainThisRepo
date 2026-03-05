@@ -1,4 +1,4 @@
-import { LLMProvider, LLMProviderError } from "./base"
+import { LLMProvider, LLMProviderError } from "./base.js"
 
 const DEFAULT_MODEL = "llama3"
 const DEFAULT_HOST = "http://localhost:11434"

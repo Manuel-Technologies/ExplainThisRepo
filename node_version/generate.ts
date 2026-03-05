@@ -1,4 +1,4 @@
-import { getActiveProvider } from "./providers/registry"
+import { getActiveProvider } from "./providers/registry.js"
 
 export async function generateExplanation(
   prompt: string,

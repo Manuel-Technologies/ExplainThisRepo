@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 
-import { LLMProvider, LLMProviderError } from "./base"
+import { LLMProvider, LLMProviderError } from "./base.js"
 
 const DEFAULT_MODEL = "gemini-2.5-flash-lite"
 

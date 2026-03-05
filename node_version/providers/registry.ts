@@ -1,9 +1,9 @@
-import { loadConfig } from "../config"
-import { LLMProvider, LLMProviderError } from "./base"
+import { loadConfig } from "../config.js"
+import { LLMProvider, LLMProviderError } from "./base.js"
 
-import { GeminiProvider } from "./gemini"
-import { OpenAIProvider } from "./openai"
-import { OllamaProvider } from "./ollama"
+import { GeminiProvider } from "./gemini.js"
+import { OpenAIProvider } from "./openai.js"
+import { OllamaProvider } from "./ollama.js"
 
 type ProviderConstructor = new (config?: any) => LLMProvider
 
