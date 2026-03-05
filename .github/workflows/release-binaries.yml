@@ -1,0 +1,132 @@
+name: Build CLI Binaries
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: 20
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }} ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+
+          # macOS
+          - os: macos
+            arch: x64
+            runner: macos-latest
+            target: node20-macos-x64
+            output: explainthisrepo-darwin-x64
+
+          - os: macos
+            arch: arm64
+            runner: macos-latest
+            target: node20-macos-arm64
+            output: explainthisrepo-darwin-arm64
+
+          # Linux
+          - os: linux
+            arch: x64
+            runner: ubuntu-latest
+            target: node20-linux-x64
+            output: explainthisrepo-linux-x64
+
+          - os: linux
+            arch: arm64
+            runner: ubuntu-latest
+            target: node20-linux-arm64
+            output: explainthisrepo-linux-arm64
+
+          # Windows
+          - os: windows
+            arch: x64
+            runner: windows-latest
+            target: node20-win-x64
+            output: explainthisrepo-win-x64.exe
+
+          - os: windows
+            arch: arm64
+            runner: windows-latest
+            target: node20-win-arm64
+            output: explainthisrepo-win-arm64.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: node_version/package-lock.json
+
+      - name: Install dependencies
+        working-directory: node_version
+        run: npm ci
+
+      - name: Build TypeScript
+        working-directory: node_version
+        run: npm run build
+
+      - name: Install pkg
+        run: npm install -g pkg
+
+      - name: Build binary
+        working-directory: node_version
+        run: |
+          pkg dist/cli.js \
+            --targets ${{ matrix.target }} \
+            --compress Brotli \
+            --output ${{ matrix.output }}
+
+      - name: Prepare artifacts
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          mv node_version/${{ matrix.output }} artifacts/
+
+      - name: Generate SHA256 checksum
+        shell: bash
+        run: |
+          cd artifacts
+          shasum -a 256 ${{ matrix.output }} > ${{ matrix.output }}.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.output }}
+          path: artifacts/*
+
+  release:
+    name: Publish Release Assets
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten artifact structure
+        run: |
+          mkdir release
+          find artifacts -type f -exec cp {} release/ \;
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
