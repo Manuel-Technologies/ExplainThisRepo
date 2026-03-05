@@ -1,8 +1,6 @@
 # ExplainThisRepo
 
-ExplainThisRepo is a CLI that generates plain-English explanations of any codebase (GitHub repositories and local directories) by analyzing project structure, READMEs, and high signal files.
-
-ExplainThisRepo is a command-line tool that analyzes GitHub repositories and local directories to generate plain-English explanations of the codebase architecture.
+ExplainThisRepo is a CLI that generates plain-English explanations of any codebase (GitHub repositories and local directories) by analyzing project structure, READMEs, and high-signal files.
 
 It helps developers quickly understand unfamiliar codebases by deriving architectural explanations from real project structure and code signals, producing a clear, structured `EXPLAIN.md`.
 
@@ -108,6 +106,38 @@ explainthisrepo owner/repo
 
 Replace `owner/repo` with the GitHub repository identifier (e.g., `facebook/react`).
 
+
+### Option 3: Download standalone binary
+
+Prebuilt standalone binaries are available for macOS, Linux, and Windows.
+
+> Standalone binaries require no Python or Node installation and run as a single executable.
+
+Download the latest release:
+
+[github.com/calchiwo/ExplainThisRepo/releases/latest](https://github.com/calchiwo/ExplainThisRepo/releases/latest)
+
+Or install directly:
+
+macOS
+
+```bash
+curl -L https://github.com/calchiwo/ExplainThisRepo/releases/latest/download/explainthisrepo-darwin-arm64 -o explainthisrepo
+chmod +x explainthisrepo
+```
+
+Linux
+```bash
+curl -L https://github.com/calchiwo/ExplainThisRepo/releases/latest/download/explainthisrepo-linux-x64 -o explainthisrepo
+chmod +x explainthisrepo
+```
+
+Windows (PowerShell)
+
+```powershell
+curl -L https://github.com/calchiwo/ExplainThisRepo/releases/latest/download/explainthisrepo-win-x64.exe -o explainthisrepo.exe
+```
+
 ---
 
 ## Flexible Repository and Local Directory Input
@@ -130,7 +160,7 @@ All inputs are normalized internally to `owner/repo`.
 
 ## Model selection
 
-The `--llm` flag to selects which configured model backend to use for the current command
+The `--llm` flag selects which configured model backend to use for the current command.
 
 ```bash
 explainthisrepo owner/repo --llm gemini
