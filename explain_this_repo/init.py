@@ -104,24 +104,34 @@ def _prompt_provider_config(provider: str) -> Dict[str, str]:
             raise RuntimeError("API key cannot be empty")
 
         err.print("Select OpenRouter model:", style="bold")
-        err.print(" 1) openai/gpt-4o (balanced)")
-        err.print(" 2) anthropic/claude-3.5-sonnet (reasoning)")
-        err.print(" 3) meta-llama/llama-3-70b-instruct (open)")
-        err.print(" 4) deepseek/deepseek-chat (cheap/fast)")
-        err.print(" 5) Enter model manually")
+        err.print("  1) openai/gpt-4o (balanced)")
+        err.print("  2) anthropic/claude-3.5-sonnet (reasoning)")
+        err.print("  3) meta-llama/llama-3-70b-instruct (open)")
+        err.print("  4) deepseek/deepseek-chat (cheap/fast)")
+        err.print("  5) Enter model manually")
 
         choice = input("> ").strip()
-
-        if choice == "5":
-            model = input("Enter model (provider/model):").strip()
 
         model_map = {
             "1": "openai/gpt-4o",
             "2": "anthropic/claude-3.5-sonnet",
             "3": "meta-llama/llama-3-70b-instruct",
             "4": "deepseek/deepseek-chat",
-            "5": "",
         }
+
+        if choice == "5":
+         model = input("Enter model (provider/model): ").strip()
+        if not model:
+            raise RuntimeError("Model cannot be empty")
+    else:
+        model = model_map.get(choice)
+        if not model:
+            raise RuntimeError("Invalid model selection")
+
+    return {
+        "api_key": key,
+        "model": model,
+    }
 
     raise RuntimeError(f"Unsupported provider: {provider}")
 
