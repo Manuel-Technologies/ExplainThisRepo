@@ -1,8 +1,8 @@
 # ExplainThisRepo
 
-_The fastest way to understand any codebase._
+_The fastest way to understand any codebase in plain English using real project signals. Not blind AI summarization._
 
-ExplainThisRepo analyzes real project signals; configs, entrypoints, manifests, dependencies, file structure and high-signal files producing a clear, structured `EXPLAIN.md` that explains what the codebase does and how it is organized in plain English.
+ExplainThisRepo analyzes real project signals; configs, entrypoints, manifests, dependencies graph, file structure and high-signal files producing a clear, structured `EXPLAIN.md` that explains what the codebase does and how it is organized in plain English.
 
 [![PyPI Version](https://img.shields.io/pypi/v/explainthisrepo?color=blue)](https://pypi.org/project/explainthisrepo/)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/explainthisrepo?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/explainthisrepo)
@@ -19,31 +19,11 @@ ExplainThisRepo analyzes real project signals; configs, entrypoints, manifests, 
 - Understand any GitHub repository in seconds
 - Derives architectural summaries from repository structure and code signals.
 Not blind AI summarization.
+- Translates complex code structures into plain English
 - Extract architecture signals from configs, entrypoints, and manifests
 - Works with GitHub repositories, local directories, private repositories, and monorepos
 - Outputs the explanation to an `EXPLAIN.md` file in your current directory or prints it directly in the terminal
 - Multiple explanation modes (quick, simple, detailed)
-
-## Configuration
-
-ExplainThisRepo supports multiple LLM models:
-
-- Gemini
-- OpenAI
-- Ollama (local or cloud-routed)
-- Anthropic
-- Groq
-- OpenRouter
-
-Use the built-in `init` command to configure your preferred model:
-
-```bash
-explainthisrepo init
-# or npx explainthisrepo init
-```
-
-> For details about how initialization works, see [INIT.md](INIT.md).
-
 
 ## Installation
 
@@ -54,6 +34,9 @@ Requirements: Python 3.9+
 ```bash
 pip install explainthisrepo
 explainthisrepo owner/repo
+
+# pip install explainthisrepo
+# explainthisrepo .
 ```
 
 Alternatively,
@@ -79,6 +62,9 @@ Install globally and use forever:
 ```bash
 npm install -g explainthisrepo
 explainthisrepo owner/repo
+
+# npm install -g explainthisrepo
+# explainthisrepo .
 ```
 
 Or without install:
@@ -119,6 +105,27 @@ Windows (PowerShell)
 ```powershell
 curl -L https://github.com/calchiwo/ExplainThisRepo/releases/latest/download/explainthisrepo-win-x64.exe -o explainthisrepo.exe
 ```
+
+## Configuration
+
+ExplainThisRepo supports multiple LLM models:
+
+- Gemini
+- OpenAI
+- Ollama (local or cloud-routed)
+- Anthropic
+- Groq
+- OpenRouter
+
+Use the built-in `init` command to configure your preferred model:
+
+```bash
+explainthisrepo init
+# or npx explainthisrepo init
+```
+
+> For details about how initialization works, see [INIT.md](INIT.md).
+
 
 ## Flag options
 
@@ -168,6 +175,7 @@ explainthisrepo owner/repo --llm openai
 explainthisrepo owner/repo --llm ollama
 explainthisrepo owner/repo --llm anthropic
 explainthisrepo owner/repo --llm openrouter
+explainthisrepo owner/repo --llm groq
 ```
 
 `--llm` works with all modes (``--quick``, ``--simple``, ``--detailed``).
@@ -181,7 +189,6 @@ Writes a full explanation to `EXPLAIN.md`:
 explainthisrepo owner/repo
 #e.g. explainthisrepo vercel/next.js
 ```
-
 
 ### Quick mode
 
