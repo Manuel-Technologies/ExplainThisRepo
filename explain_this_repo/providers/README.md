@@ -5,15 +5,15 @@ Provider implementations for ExplainThisRepo.
 This module implements the **LLM provider architecture** used by the CLI.
 It allows ExplainThisRepo to support multiple language model backends without coupling the core CLI to any specific vendor SDK.
 
-The CLI is **model-agnostic**. All model interaction happens through this provider layer.
+The CLI is **provider-agnostic**. All model interaction happens through this provider layer.
 
----
+Model selection is delegated to provider configuration.
 
 # Overview
 
 ExplainThisRepo previously relied on a **single hard-coded model provider (Gemini)**.
 
-The provider system introduces a **pluggable architecture** that separates:
+The provider system implements a **pluggable architecture** that separates:
 
 ```
 CLI logic
@@ -32,11 +32,9 @@ diagnostics
 
 The result is a clean separation of concerns.
 
----
-
 # Architecture
 
-The provider system consists of four components:
+The provider system consists of the following components:
 
 ```
 providers/
@@ -46,12 +44,13 @@ providers/
 │
 ├── gemini.py      # Gemini implementation
 ├── openai.py      # OpenAI implementation
-└── ollama.py      # Ollama implementation
+├── ollama.py      # Ollama implementation
+├── anthropic.py   # Anthropic implementation
+├── groq.py        # Groq implementation
+└── openrouter.py  # OpenRouter implementation
 ```
 
 Each provider implements the same interface defined in `base.py`.
-
----
 
 # Provider Contract
 
@@ -86,8 +85,6 @@ Examples:
 
 This method should fail early if configuration is invalid.
 
----
-
 ### `generate(prompt)`
 
 Executes the model request and returns the generated text.
@@ -101,15 +98,13 @@ Providers are responsible for:
 
 The CLI expects this method to return **a non-empty string**.
 
----
-
 ### `doctor()`
 
 Runs provider diagnostics.
 
 This method is used by:
 
-```
+```bash
 explainthisrepo --doctor
 ```
 
@@ -127,8 +122,6 @@ False
 list[str]
 ```
 
----
-
 # Provider Registry
 
 Provider resolution is handled by `registry.py`.
@@ -137,7 +130,7 @@ The registry is responsible for:
 
 * mapping provider names to implementations
 * loading provider configuration
-* selecting the active provider
+* selecting the configured provider
 
 Example registry mapping:
 
@@ -146,13 +139,16 @@ _PROVIDER_REGISTRY = {
     "gemini": "explain_this_repo.providers.gemini.GeminiProvider",
     "openai": "explain_this_repo.providers.openai.OpenAIProvider",
     "ollama": "explain_this_repo.providers.ollama.OllamaProvider",
+    "anthropic": "explain_this_repo.providers.anthropic.AnthropicProvider",
+    "groq": "explain_this_repo.providers.groq.GroqProvider",
+    "openrouter": "explain_this_repo.providers.openrouter.OpenRouterProvider",
 }
 ```
 
 The active provider is determined by:
 
 1. `--llm` runtime flag
-2. configuration default
+2. configured provider from config.toml
 
 Resolution flow:
 
@@ -166,15 +162,30 @@ registry.get_active_provider()
 provider.generate()
 ```
 
----
+Only one provider is resolved per execution. No fallback or chaining is performed.
 
 # Configuration
+
+ExplainThisRepo supports multiple LLM providers, but only one active provider is used per run.
+
+- Gemini
+- OpenAI
+- Ollama
+- Anthropic
+- Groq
+- OpenRouter
+
+Run `explainthisrepo init` to select a provider and write its configuration.
+
+The configuration is single-provider.
+
+Only one provider is stored and used unless overridden with `--llm`.
 
 Provider configuration is stored in `config.toml`.
 
 Example for Gemini:
 
-```bash
+```toml
 [llm]
 provider = "gemini"
 
@@ -183,42 +194,91 @@ api_key = "..."
 ```
 Example for OpenAI:
 
-```bash
+```toml
 [llm]
 provider = "openai"
 
-[providers.gemini]
+[providers.openai]
 api_key = "..."
 ```
 
 Example for Ollama:
 
-```bash
+```toml
 [llm]
 provider = "ollama"
 
 [providers.ollama]
-model = "llama3"
+model = "<user-selected>"
 host = "http://localhost:11434"
 ```
 
-Only the selected provider is used during execution.
+Example for Anthropic:
 
----
+```toml
+[llm]
+provider = "anthropic"
+
+[providers.anthropic]
+api_key = "..."
+```
+
+Example for Groq:
+
+```toml
+[llm]
+provider = "groq"
+
+[providers.groq]
+api_key = "..."
+model = "<user-selected>"
+```
+
+Example for OpenRouter:
+
+```toml
+[llm]
+provider = "openrouter"
+
+[providers.openrouter]
+api_key = "..."
+model = "<user-selected>"
+```
+
+Only the configured or overridden provider is used during execution.
+
+If required fields (e.g. API key or model) are missing, the provider will fail during validation or execution.
+
+## Provider Configuration Types
+
+Providers fall into two categories:
+
+### API-only providers
+Require only an API key:
+- Gemini
+- OpenAI
+- Anthropic
+
+### Model-configured providers
+Require user model selection:
+- Ollama
+- Groq
+- OpenRouter
 
 # Runtime Provider Selection
 
-Users can override the configured provider:
+Only one provider is stored and used. Users can override the configured provider using `--llm`:
 
 ```
 explainthisrepo owner/repo --llm gemini
 explainthisrepo owner/repo --llm openai
 explainthisrepo owner/repo --llm ollama
+explainthisrepo owner/repo --llm anthropic
+explainthisrepo owner/repo --llm groq
+explainthisrepo owner/repo --llm openrouter
 ```
 
 This override is resolved by the provider registry.
-
----
 
 # Optional Dependencies
 
@@ -229,11 +289,11 @@ Example:
 ```
 pip install explainthisrepo[gemini]
 pip install explainthisrepo[openai]
+pip install explainthisrepo[anthropic]
+pip install explainthisrepo[groq]
 ```
 
 Ollama uses HTTP and does not require additional Python dependencies.
-
----
 
 # Adding a New Provider
 
@@ -283,8 +343,6 @@ _PROVIDER_REGISTRY["myprovider"] = "explain_this_repo.providers.myprovider.MyPro
 
 Add provider configuration support to `init.py`.
 
----
-
 # Design Principles
 
 The provider architecture follows several rules:
@@ -302,8 +360,6 @@ repo_reader.py
 
 All vendor interaction belongs inside providers.
 
----
-
 ### Providers own SDK logic
 
 Providers are responsible for:
@@ -313,15 +369,11 @@ Providers are responsible for:
 * handling API errors
 * running diagnostics
 
----
-
 ### Core modules remain stable
 
 The core CLI should not change when new providers are added.
 
 Only the provider layer expands.
-
----
 
 # Why This Architecture Exists
 
@@ -335,25 +387,11 @@ This system enables:
 
 The CLI can now evolve independently of any specific model provider.
 
----
-
-# Current Providers
-
-ExplainThisRepo currently supports:
-
-```
-Gemini
-OpenAI
-Ollama
-```
-
-Additional providers can be added without modifying the CLI core.
-
----
-
 # Summary
 
 The provider system isolates model interaction from the rest of the application.
+
+Only one provider is active per execution
 
 This keeps the CLI:
 
@@ -365,4 +403,6 @@ vendor-agnostic
 
 All future model integrations should be implemented inside this module.
 
-For more details about how initilization works, see also [INIT.md](https://github.com/calchiwo/ExplainThisRepo/blob/main/INIT.md)
+This module defines the integration boundary for LLM providers.
+
+For more details about how initialization works, see also [INIT.md](https://github.com/calchiwo/ExplainThisRepo/blob/main/docs/INIT.md)

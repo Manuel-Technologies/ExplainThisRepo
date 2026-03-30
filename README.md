@@ -135,7 +135,7 @@ explainthisrepo init
 # or npx explainthisrepo init
 ```
 
-> For details about how initialization works, see [INIT.md](INIT.md).
+> For details about how initialization works, see [docs/INIT.md](docs/INIT.md).
 
 ## GitHub token Access (Private Repos & Rate Limits)
 
