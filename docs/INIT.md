@@ -1,13 +1,10 @@
 # Initialization (init)
 
 The `init` command bootstraps ExplainThisRepo by creating a local, persistent configuration file.
-
+Runnig
 It configures:
 - your selected LLM provider
 - optional GitHub access (for private repos and higher rate limits)
-
-No repository analysis is performed during initialization.
-
 
 ## What `init` does
 
@@ -20,17 +17,19 @@ No repository analysis is performed during initialization.
   - Groq
   - OpenRouter
 
+- Overwrites any existing configuration file
+
 - Collects only the configuration required for that provider
 
 - Optionally prompts for a GitHub token
 
 - Writes a minimal `config.toml` file to the OS-appropriate config directory
 
-- Sets the selected provider as default
+- Writes the selected provider as the active provider
 
 - Exits immediately
 
-## GitHub access (optional)
+## GitHub access
 
 During setup, you can configure a GitHub token.
 
@@ -43,6 +42,15 @@ If skipped:
 - public repositories still work
 - rate limits are lower
 - private repositories will fail
+
+If not set in config, ExplainThisRepo will also check:
+
+- GITHUB_TOKEN
+- GH_TOKEN
+
+environment variables.
+
+If both config and environment variables are set, the config value takes precedence.
 
 ## Per provider input
 
@@ -75,16 +83,16 @@ Depending on the provider selected:
 - Prompts for `api_key`
 - Prompts for model selection or manual input
 
-Only the selected provider’s configuration is written.
+Only the selected provider configuration and optional GitHub configuration are written.
+Empty input for optional fields skips configuration safely.
 
 ## What `init` does NOT do
 
-- No repository analysis
+- No repository analysis is performed during initialization.
 - No model execution
 - No API key validation
 - No dependency installation
 - No environment variable modification
-- No network requests
 
 The configuration is written locally only.
 
@@ -130,7 +138,7 @@ api_key = "..."
 
 ### OpenAI
 
-```
+```toml
 [llm]
 provider = "openai"
 
@@ -140,13 +148,45 @@ api_key = "..."
 
 ### Ollama
 
-```
+```toml
 [llm]
 provider = "ollama"
 
 [providers.ollama]
-model = "llama3"
+model = "<user-selected>"
 host = "http://localhost:11434"
+```
+
+### Anthropic
+
+```toml
+[llm]
+provider = "anthropic"
+
+[providers.anthropic]
+api_key = "..."
+```
+
+### Groq
+
+```toml
+[llm]
+provider = "groq"
+
+[providers.groq]
+api_key = "..."
+model = "<user-selected>"
+```
+
+### OpenRouter
+
+```toml
+[llm]
+provider = "openrouter"
+
+[providers.openrouter]
+api_key = "..."
+model = "<user-selected>"
 ```
 
 ### Design intent
@@ -157,15 +197,14 @@ After initialization:
 
 - All analysis commands run without repeated prompts
 
-- Provider selection can be overridden via --llm
-
 - GitHub authentication is resolved automatically from config or environment
 
-- Multiple providers can be supported without reinitialization
+- Provider selection can be overridden via `--llm` without re-running init.
 
+- Only one provider is active at a time
 
 This establishes a stable foundation for:
 
-- multi-LLM operation
+- single-provider execution with optional runtime override
 
-- authenticated GitHub
+- authenticated GitHub access
