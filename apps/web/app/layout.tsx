@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     siteName: 'ExplainThisRepo',
     images: [
       {
-        url: '/explainthisrepo.png',
+        url: '/og.png',
         width: 512,
         height: 512,
         alt: 'ExplainThisRepo Logo'
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     description: 'Analyze GitHub repositories and local codebases using real project signals, not blind AI summarization. Get instant explanations with ExplainThisRepo CLI',
     site: '@explainthisrepo',
     creator: '@calchiwo',
-    images: ['/explainthisrepo.png']
+    images: ['/og.png']
   },
   robots: {
     index: true,
