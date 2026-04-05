@@ -1,87 +1,104 @@
-# ExplainThisRepo
+# ExplainThisRepo (Node Launcher)
 
-This folder contains a high-performance, lightweight port of the ExplainThisRepo CLI tool.
-While the original Python implementation is the primary version of this tool, this Node.js port was created to provide a "zero-compilation" experience for users where Python C-extensions (like Pillow) can be difficult to build.
+This is not the core implementation.
 
-## Features
-- **Automated Repository Analysis**: Seamlessly fetches repository data and documentation via the GitHub REST API.
-- **AI-Driven Contextualization**: Uses Google Gemini 2.5 Flash Lite to extract technical value and purpose from codebases.
-- **Senior Engineer Perspective**: Generates explanations tailored for developers, focusing on architecture, target audience, and execution.
-- **Markdown Generation**: Automatically outputs a clean, structured `EXPLAIN.md` file for immediate reading.
-- **TypeScript Core**: Built with type safety and modern asynchronous patterns for reliable performance.
+This package is a thin Node.js launcher for the real CLI, which is written in Python and bundled as native binaries.
+
+## Architecture
+
+ExplainThisRepo now has a split architecture:
+
+- Python → core logic (analysis, prompts, providers, output)
+- PyInstaller → builds native binaries
+- Node → launcher only (distribution via npm)
+
+Node does **NOT**:
+- fetch repositories
+- read files
+- generate prompts
+- call LLMs
+- detect stacks
+- manage config
+
+All execution happens inside the bundled Python binary.
+
+## What this package does
+
+- Detects the current platform (Windows, macOS, Linux)
+- Selects the correct prebuilt binary
+- Executes it with the provided CLI arguments
+
+That’s it.
 
 ## Installation
 
-Follow these steps to set up the project locally on your machine:
-
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/calchiwo/ExplainThisRepo.git
-   cd ExplainThisRepo/node_version
-   ```
-
-2. **Install Dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set Up Environment Variables**
-   Create a `.env` file in the root directory or export the variable directly in your terminal:
-   ```bash
-   export GEMINI_API_KEY=your_actual_api_key_here
-   ```
-
-4. **Build the Project**
-   Compile the TypeScript source code into executable JavaScript:
-   ```bash
-   npm run build
-   ```
-5  **Link the command globally:**
 ```bash
-   npm link
-   ```
-
+npm install -g explainthisrepo
+```
 
 ## Usage
+```bash
+explainthisrepo owner/repo
+```
 
-Once the project is built, you can use the CLI tool to analyze any public GitHub repository.
+All flags and behavior are handled by the Python core.
 
-### Running the CLI
-Execute the tool by passing the `owner/repo` string as an argument:
+Examples:
+
+```bash
+explainthisrepo owner/repo
+explainthisrepo owner/repo --quick
+explainthisrepo owner/repo --simple
+explainthisrepo owner/repo --detailed
+explainthisrepo owner/repo --stack
+explainthisrepo .
+explainthisrepo . --quick
+explainthisrepo . --simple
+explainthisrepo . --detailed
+explainthisrepo . --stack
+explainthisrepo ./path/to/directory
+explainthisrepo ./path/to/directory --quick
+explainthisrepo ./path/to/directory --simple
+explainthisrepo ./path/to/directory --detailed
+explainthisrepo ./path/to/directory --stack
+explainthisrepo owner/repo --llm gemini
+explainthisrepo owner/repo --llm openai
+explainthisrepo owner/repo --llm ollama
+explainthisrepo owner/repo --llm anthropic
+explainthisrepo owner/repo --llm openrouter
+explainthisrepo owner/repo --llm groq
+explainthisrepo --doctor
+explainthisrepo --version
+```
+
+## Development
+
+You should **NOT** add logic here.
+
+If you need to change behavior: → modify the Python core (`explain_this_repo/`) → rebuild binaries via [PyInstaller](https://pyinstaller.org/en/stable/)
+
+### Build
+
+```bash
+npm run build
+```
+
+### Local test
 
 ```bash
 node dist/cli.js facebook/react
 ```
 
-### Expected Workflow
-1. The tool fetches the repository description and README from GitHub.
-2. It processes the information and sends a structured prompt to the Gemini AI.
-3. An `EXPLAIN.md` file is generated in your current working directory containing:
-   - Project Overview
-   - Functional Breakdown
-   - Target User Identification
-   - Setup/Execution Instructions
+### Files
+`dist/cli.js` → launcher entrypoint
 
-### Scripts
-- `npm run build`: Compiles TypeScript to the `dist` folder.
-- `npm run format`: Formats the codebase using Prettier.
-- `npm start`: Runs the tool (requires the repository argument).
+`dist/native/` → platform-specific binaries
 
-## Contributing
+`_legacy/` → old Node implementation (unused)
 
-Contributions are what make the open-source community an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated.
 
--️ **Report Bugs**: Open an issue if you find any unexpected behavior.
-- **Feature Requests**: Proposals for new features are always welcome.
-- **Pull Requests**: Ensure your code follows the existing style and all linting passes.
+## Important
 
-> Note: Please run npm run format before submitting a Pull Request to ensure code consistency.
+This [npm package](https://www.npmjs.com/package/explainthisrepo) exists for distribution only.
 
-## License
-This project is licensed under the MIT License as specified in the package configuration.
-
-## Author Info
-
-[**Caleb Wodi**](https://github.com/calchiwo)
-
-Node version contibuted by [@Spectra010s](https://github.com/spectra010s)
+The real product lives in [Python](https://github.com/calchiwo/ExplainThisRepo/blob/main/explain_this_repo/cli.py) implementation.
