@@ -3,7 +3,8 @@ import os
 import platform
 import sys
 import urllib.request
-from importlib.metadata import PackageNotFoundError, version as pkg_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as pkg_version
 from urllib.parse import urlparse
 
 from rich.console import Console
@@ -62,11 +63,13 @@ def resolve_repo_target(target: str) -> tuple[str, str]:
 
     raise ValueError("Invalid format. Use owner/repo or a GitHub repo URL")
 
+
 try:
     from explain_this_repo._version import VERSION as BUILT_VERSION
 except Exception:
     BUILT_VERSION = "unknown"
-    
+
+
 def _pkg_version(name: str) -> str:
     if getattr(sys, "frozen", False):
         return BUILT_VERSION
