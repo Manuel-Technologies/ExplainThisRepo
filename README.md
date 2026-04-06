@@ -28,7 +28,7 @@ Not blind AI summarization.
 
 ## Installation
 
-### Option 1: install with pip (recommended):
+### Option 1: install with pip (Python source version):
 
 Requirements: Python 3.9+
 
@@ -66,7 +66,7 @@ pip install explainthisrepo[groq]
 
 Replace `owner/repo` with the GitHub repository identifier (e.g., `facebook/react`, `torvalds/linux`).
 
-### Option 2: Install with npm
+### Option 2: Install with npm (prebuilt binary, no Python required)
 
 Install globally and use forever:
 
@@ -85,6 +85,16 @@ npx explainthisrepo owner/repo
 
 # npx explainthisrepo .
 ```
+
+## How it works
+
+ExplainThisRepo uses a hybrid architecture:
+
+- Python → core implementaion (analysis, prompts, providers, output)
+- npm → ships prebuilt native binaries (no Python required)
+- pip → installs the full Python package
+
+> The npm and pip versions run the same core engine.
 
 ### Option 3: Download standalone binary
 
