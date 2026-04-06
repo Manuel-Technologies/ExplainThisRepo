@@ -23,10 +23,10 @@ jobs:
       matrix:
         include:
           - target: darwin-x64
-            runner: macos-13
+            runner: macos-latest
 
           - target: darwin-arm64
-            runner: macos-14
+            runner: macos-latest
 
           - target: linux-x64
             runner: ubuntu-latest
