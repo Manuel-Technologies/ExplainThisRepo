@@ -160,7 +160,7 @@ export function Footer() {
               Twitter
             </Link>
             <Link
-              href="https://discord.gg/explainthisrepo"
+              href="https://explainthisrepo.com/discord"
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
