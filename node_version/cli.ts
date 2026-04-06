@@ -17,6 +17,8 @@ function getTargetKey(): TargetKey {
   const platform = process.platform;
   const arch = process.arch;
 
+  const effectivePlatform = platform === "android" ? "linux" : platform;
+
   if (platform === "darwin" && arch === "x64") return "darwin-x64";
   if (platform === "darwin" && arch === "arm64") return "darwin-arm64";
   if (platform === "linux" && arch === "x64") return "linux-x64";
