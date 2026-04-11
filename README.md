@@ -195,8 +195,10 @@ explainthisrepo github.com/owner/repo
 explainthisrepo https://github.com/owner/repo/issues/123
 explainthisrepo https://github.com/owner/repo?tab=readme
 explainthisrepo git@github.com:owner/repo.git
+explainthisrepo owner/repo/path/to/file.py
 explainthisrepo .
 explainthisrepo ./path/to/directory
+explainthisrepo ./path/to/file.py
 ```
 
 All inputs are normalized internally to `owner/repo`.
@@ -344,6 +346,38 @@ When analyzing a file:
 - The explanation focuses on purpose, logic, and behavior
 - This makes it easy to understand unfamiliar files without scanning entire repositories.
 
+## GitHub File Analysis
+
+ExplainThisRepo can analyze a single file directly from a GitHub repository without cloning it.
+
+```bash
+explainthisrepo owner/repo/path/to/file.py
+```
+Supports all explanation modes:
+
+```bash
+explainthisrepo owner/repo/path/to/file.py --quick
+explainthisrepo owner/repo/path/to/file.py --simple
+explainthisrepo owner/repo/path/to/file.py --detailed
+```
+
+When analyzing a GitHub file:
+- The file is fetched directly via the GitHub API
+- Only valid text files are processed (binary files are rejected)
+- File size is capped to prevent unsafe or truncated analysis
+- The explanation focuses on the file’s purpose, logic, and behavior
+
+Input format must be:
+
+```bash
+explainthisrepo owner/repo/path/to/file
+```
+
+This is different from local file analysis:
+
+```bash
+explainthisrepo ./path/to/file.py
+```
 ### Custom output
 
 `--output`, `-o` → Specify output file or directory (default: `EXPLAIN.md`)
