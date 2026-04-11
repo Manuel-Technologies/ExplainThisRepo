@@ -1,6 +1,7 @@
 import argparse
 import os
 import platform
+import re
 import sys
 import urllib.request
 from importlib.metadata import PackageNotFoundError
@@ -11,18 +12,29 @@ from rich.console import Console
 
 from explain_this_repo.file_reader import read_local_file
 from explain_this_repo.generate import generate_explanation
-from explain_this_repo.github import fetch_languages, fetch_readme, fetch_repo
+from explain_this_repo.github import (
+    fetch_file_result,
+    fetch_languages,
+    fetch_readme,
+    fetch_repo,
+)
 from explain_this_repo.local_reader import read_local_repo_signal_files
-from explain_this_repo.prompt import (build_file_prompt,
-                                      build_file_quick_prompt,
-                                      build_file_simple_prompt, build_prompt,
-                                      build_quick_prompt, build_simple_prompt)
+from explain_this_repo.prompt import (
+    build_file_prompt,
+    build_file_quick_prompt,
+    build_file_simple_prompt,
+    build_prompt,
+    build_quick_prompt,
+    build_simple_prompt,
+)
 from explain_this_repo.repo_reader import read_repo_signal_files
 from explain_this_repo.stack_detector import detect_stack
 from explain_this_repo.stack_printer import print_stack
 from explain_this_repo.writer import write_output
 
 console = Console()
+
+_MAX_GITHUB_FILE_BYTES = 32_000
 
 
 def resolve_repo_target(target: str) -> tuple[str, str]:
@@ -65,6 +77,18 @@ def resolve_repo_target(target: str) -> tuple[str, str]:
             return owner, repo
 
     raise ValueError("Invalid format. Use owner/repo or a GitHub repo URL")
+
+
+def resolve_github_file_target(target: str) -> tuple[str, str, str]:
+    if not _looks_like_github_file_target(target):
+        raise ValueError("Invalid format. Use owner/repo/path/to/file")
+
+    owner, repo, path = target.strip().split("/", 2)
+    path = path.lstrip("/")
+    path = re.sub(r"/+", "/", path)
+    if not path:
+        raise ValueError("Invalid format. Use owner/repo/path/to/file")
+    return owner, repo, path
 
 
 try:
@@ -241,11 +265,55 @@ def generate_with_exit(prompt: str, llm: str | None = None) -> str:
         raise SystemExit(1)
 
 
+def _looks_like_github_file_target(target: str) -> bool:
+    value = target.strip()
+    if not value:
+        return False
+
+    if value.startswith(("./", "../", "/", "~/")):
+        return False
+
+    if value.startswith(("http://", "https://", "git@github.com:", "github.com/")):
+        return False
+
+    if "://" in value or "\\" in value:
+        return False
+
+    if re.match(r"^[A-Za-z]:/", value):
+        return False
+
+    parts = value.split("/")
+    if len(parts) < 3:
+        return False
+
+    if any(not part for part in parts):
+        return False
+
+    if any(part in {".", "..", "~"} for part in parts):
+        return False
+
+    name_pattern = re.compile(r"^[A-Za-z0-9_.-]+$")
+    owner, repo = parts[0], parts[1]
+
+    if owner.lower() in {"github.com", "www.github.com"}:
+        return False
+
+    if not name_pattern.match(owner):
+        return False
+
+    if not name_pattern.match(repo):
+        return False
+
+    return True
+
+
 def _classify_target(target: str) -> str:
     if os.path.isfile(target):
         return "file"
     if os.path.isdir(target):
         return "directory"
+    if _looks_like_github_file_target(target):
+        return "github_file"
     return "github"
 
 
@@ -257,6 +325,60 @@ def _extract_file_signals(read_result) -> dict:
     }
 
 
+def _validate_github_file_result(read_result) -> None:
+    content = getattr(read_result, "content", None)
+    size_bytes = getattr(read_result, "size_bytes", None)
+    is_text = getattr(read_result, "is_text", None)
+
+    if not getattr(read_result, "path", None):
+        raise ValueError("GitHub path does not resolve to a file.")
+
+    if is_text is not True:
+        raise ValueError("binary GitHub files are not supported.")
+
+    if not isinstance(content, str):
+        raise ValueError("GitHub file content is unavailable.")
+
+    if size_bytes is None:
+        raise ValueError("GitHub file size is unavailable.")
+
+    if int(size_bytes) > _MAX_GITHUB_FILE_BYTES:
+        raise ValueError(
+            f"GitHub file too large ({size_bytes} bytes, limit {_MAX_GITHUB_FILE_BYTES} bytes)."
+        )
+
+
+def _handle_github_file_error(error: Exception) -> None:
+    message = str(error).strip()
+    lowered = message.lower()
+
+    if "directory" in lowered and "not a file" in lowered:
+        print("error: GitHub path resolves to a directory, not a file.")
+        return
+
+    if "404" in message or "not found" in lowered:
+        print("error: GitHub 404: file not found.")
+        return
+
+    if "binary" in lowered:
+        print("error: binary GitHub files are not supported.")
+        return
+
+    if "too large" in lowered or "truncated" in lowered:
+        print("error: GitHub file is too large to explain safely.")
+        return
+
+    if "rate limit" in lowered:
+        print("error: GitHub API rate limit exceeded.")
+        return
+
+    if "forbidden" in lowered or "permission" in lowered or "private" in lowered:
+        print("error: GitHub permission denied. Check access for private repositories.")
+        return
+
+    print("error: could not fetch GitHub file.")
+
+
 def _handle_file_mode(args, llm: str | None) -> None:
     if args.stack:
         print("error: --stack is not supported for file targets")
@@ -265,10 +387,16 @@ def _handle_file_mode(args, llm: str | None) -> None:
     file_path = os.path.abspath(args.repository)
 
     try:
-        with console.status("Reading file…", spinner="dots"):
+        with console.status("Reading file...", spinner="dots"):
             read_result = read_local_file(file_path)
-    except (FileNotFoundError, ValueError, OSError) as e:
+    except FileNotFoundError as e:
+        print(f"error: file not found: {e}")
+        raise SystemExit(1)
+    except ValueError as e:
         print(f"error: {e}")
+        raise SystemExit(1)
+    except OSError as e:
+        print(f"error: could not read file: {e}")
         raise SystemExit(1)
 
     print(f"Analyzing file: {args.repository}")
@@ -282,7 +410,7 @@ def _handle_file_mode(args, llm: str | None) -> None:
             content=read_result.content,
         )
 
-        with console.status("Generating explanation…", spinner="dots"):
+        with console.status("Generating explanation...", spinner="dots"):
             output = generate_with_exit(prompt, llm=llm)
 
         print("Quick summary 🎉")
@@ -297,7 +425,7 @@ def _handle_file_mode(args, llm: str | None) -> None:
             signals=signals,
         )
 
-        with console.status("Generating explanation…", spinner="dots"):
+        with console.status("Generating explanation...", spinner="dots"):
             output = generate_with_exit(prompt, llm=llm)
 
         print("Simple summary 🎉")
@@ -313,7 +441,82 @@ def _handle_file_mode(args, llm: str | None) -> None:
         detailed=args.detailed,
     )
 
-    with console.status("Generating explanation…", spinner="dots"):
+    with console.status("Generating explanation...", spinner="dots"):
+        output = generate_with_exit(prompt, llm=llm)
+
+    print(f"Writing {args.output}...")
+    write_output(output, args.output)
+
+    word_count = len(output.split())
+    print(f"{args.output} generated successfully 🎉")
+    print(f"Words: {word_count}")
+    print(f"Location: {os.path.abspath(args.output)}")
+    print(f"Open {args.output} to read it.")
+
+
+def _handle_github_file_mode(args, llm: str | None) -> None:
+    if args.stack:
+        print("error: --stack is not supported for GitHub file targets")
+        raise SystemExit(1)
+
+    try:
+        owner, repo, file_path = resolve_github_file_target(args.repository)
+    except ValueError as e:
+        _handle_github_file_error(e)
+        raise SystemExit(1)
+
+    try:
+        with console.status(f"Fetching {owner}/{repo}/{file_path}...", spinner="dots"):
+            read_result = fetch_file_result(owner, repo, file_path)
+            _validate_github_file_result(read_result)
+    except Exception as e:
+        _handle_github_file_error(e)
+        raise SystemExit(1)
+
+    display_path = f"{owner}/{repo}/{read_result.path}"
+    print(f"Analyzing GitHub file: {display_path}")
+
+    signals = _extract_file_signals(read_result)
+
+    if args.quick:
+        prompt = build_file_quick_prompt(
+            path=display_path,
+            extension=read_result.extension,
+            content=read_result.content,
+        )
+
+        with console.status("Generating explanation...", spinner="dots"):
+            output = generate_with_exit(prompt, llm=llm)
+
+        print("Quick summary 🎉")
+        print(output.strip())
+        return
+
+    if args.simple:
+        prompt = build_file_simple_prompt(
+            path=display_path,
+            extension=read_result.extension,
+            content=read_result.content,
+            signals=signals,
+        )
+
+        with console.status("Generating explanation...", spinner="dots"):
+            output = generate_with_exit(prompt, llm=llm)
+
+        print("Simple summary 🎉")
+        print(output.strip())
+        return
+
+    prompt = build_file_prompt(
+        path=display_path,
+        extension=read_result.extension,
+        size_bytes=read_result.size_bytes,
+        content=read_result.content,
+        signals=signals,
+        detailed=args.detailed,
+    )
+
+    with console.status("Generating explanation...", spinner="dots"):
         output = generate_with_exit(prompt, llm=llm)
 
     print(f"Writing {args.output}...")
@@ -332,7 +535,7 @@ def _handle_directory_mode(args, llm: str | None) -> None:
     print(f"Analyzing local directory: {args.repository}")
 
     if args.stack:
-        with console.status("Reading repository files…", spinner="dots"):
+        with console.status("Reading repository files...", spinner="dots"):
             read_result = read_local_repo_signal_files(local_path)
 
         report = detect_stack(
@@ -345,7 +548,7 @@ def _handle_directory_mode(args, llm: str | None) -> None:
         return
 
     if args.quick:
-        with console.status("Reading repository files…", spinner="dots"):
+        with console.status("Reading repository files...", spinner="dots"):
             read_result = read_local_repo_signal_files(local_path)
 
         readme_content = read_result.key_files.get(
@@ -362,7 +565,7 @@ def _handle_directory_mode(args, llm: str | None) -> None:
             readme=readme_content,
         )
 
-        with console.status("Generating explanation…", spinner="dots"):
+        with console.status("Generating explanation...", spinner="dots"):
             output = generate_with_exit(prompt, llm=llm)
 
         print("Quick summary 🎉")
@@ -370,7 +573,7 @@ def _handle_directory_mode(args, llm: str | None) -> None:
         return
 
     if args.simple:
-        with console.status("Reading repository files…", spinner="dots"):
+        with console.status("Reading repository files...", spinner="dots"):
             read_result = read_local_repo_signal_files(local_path)
 
         prompt = build_simple_prompt(
@@ -380,14 +583,14 @@ def _handle_directory_mode(args, llm: str | None) -> None:
             tree_text=read_result.tree_text,
         )
 
-        with console.status("Generating explanation…", spinner="dots"):
+        with console.status("Generating explanation...", spinner="dots"):
             output = generate_with_exit(prompt, llm=llm)
 
         print("Simple summary 🎉")
         print(output.strip())
         return
 
-    with console.status("Reading repository files…", spinner="dots"):
+    with console.status("Reading repository files...", spinner="dots"):
         read_result = read_local_repo_signal_files(local_path)
 
     prompt = build_prompt(
@@ -399,7 +602,7 @@ def _handle_directory_mode(args, llm: str | None) -> None:
         files_text=read_result.files_text,
     )
 
-    with console.status("Generating explanation…", spinner="dots"):
+    with console.status("Generating explanation...", spinner="dots"):
         output = generate_with_exit(prompt, llm=llm)
 
     print(f"Writing {args.output}...")
@@ -421,7 +624,7 @@ def _handle_github_mode(args, llm: str | None) -> None:
 
     if args.stack:
         try:
-            with console.status(f"Fetching {owner}/{repo}…", spinner="dots"):
+            with console.status(f"Fetching {owner}/{repo}...", spinner="dots"):
                 read_result = read_repo_signal_files(owner, repo)
                 languages = fetch_languages(owner, repo)
         except Exception as e:
@@ -438,7 +641,7 @@ def _handle_github_mode(args, llm: str | None) -> None:
         return
 
     try:
-        with console.status(f"Fetching {owner}/{repo}…", spinner="dots"):
+        with console.status(f"Fetching {owner}/{repo}...", spinner="dots"):
             repo_data = fetch_repo(owner, repo)
             readme = fetch_readme(owner, repo)
     except Exception as e:
@@ -452,7 +655,7 @@ def _handle_github_mode(args, llm: str | None) -> None:
             readme=readme,
         )
 
-        with console.status("Generating explanation…", spinner="dots"):
+        with console.status("Generating explanation...", spinner="dots"):
             output = generate_with_exit(prompt, llm=llm)
 
         print("Quick summary 🎉")
@@ -460,7 +663,7 @@ def _handle_github_mode(args, llm: str | None) -> None:
         return
 
     if args.simple:
-        with console.status("Reading repository files…", spinner="dots"):
+        with console.status("Reading repository files...", spinner="dots"):
             read_result = safe_read_repo_files(owner, repo)
 
         prompt = build_simple_prompt(
@@ -470,14 +673,14 @@ def _handle_github_mode(args, llm: str | None) -> None:
             tree_text=read_result.tree_text if read_result else None,
         )
 
-        with console.status("Generating explanation…", spinner="dots"):
+        with console.status("Generating explanation...", spinner="dots"):
             output = generate_with_exit(prompt, llm=llm)
 
         print("Simple summary 🎉")
         print(output.strip())
         return
 
-    with console.status("Reading repository files…", spinner="dots"):
+    with console.status("Reading repository files...", spinner="dots"):
         read_result = safe_read_repo_files(owner, repo)
 
     prompt = build_prompt(
@@ -489,7 +692,7 @@ def _handle_github_mode(args, llm: str | None) -> None:
         files_text=read_result.files_text if read_result else None,
     )
 
-    with console.status("Generating explanation…", spinner="dots"):
+    with console.status("Generating explanation...", spinner="dots"):
         output = generate_with_exit(prompt, llm=llm)
 
     print(f"Writing {args.output}...")
@@ -515,6 +718,10 @@ def main():
         "  explainthisrepo owner/repo --quick\n"
         "  explainthisrepo owner/repo --simple\n"
         "  explainthisrepo owner/repo --stack\n"
+        "  explainthisrepo owner/repo/path/to/file.py\n"
+        "  explainthisrepo owner/repo/path/to/file.py --quick\n"
+        "  explainthisrepo owner/repo/path/to/file.py --simple\n"
+        "  explainthisrepo owner/repo/path/to/file.py --detailed\n"
         "  explainthisrepo init\n"
         "  explainthisrepo owner/repo --llm gemini\n"
         "  explainthisrepo owner/repo --llm openai\n"
@@ -588,7 +795,7 @@ def main():
     parser.add_argument(
         "repository",
         nargs="?",
-        help="GitHub repository (owner/repo or URL), local directory, or local file",
+        help="GitHub repository (owner/repo or URL), local directory, GitHub file, or local file",
     )
 
     mode_group = parser.add_mutually_exclusive_group()
@@ -654,6 +861,8 @@ def main():
         _handle_file_mode(args, llm)
     elif mode == "directory":
         _handle_directory_mode(args, llm)
+    elif mode == "github_file":
+        _handle_github_file_mode(args, llm)
     else:
         _handle_github_mode(args, llm)
 
