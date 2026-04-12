@@ -39,8 +39,10 @@ Requirements: Python 3.9+
 pip install explainthisrepo
 explainthisrepo owner/repo
 
-# pip install explainthisrepo
 # explainthisrepo .
+# explainthisrepo ./path/to/directory
+# explainthisrepo ./path/to/file.py
+# explainthisrepo owner/repo/path/to/file.py
 ```
 
 Alternatively,
@@ -77,8 +79,10 @@ Install globally and use forever:
 npm install -g explainthisrepo
 explainthisrepo owner/repo
 
-# npm install -g explainthisrepo
 # explainthisrepo .
+# explainthisrepo ./path/to/directory
+# explainthisrepo ./path/to/file.py
+# explainthisrepo owner/repo/path/to/file.py
 ```
 
 Or without install:
@@ -87,6 +91,9 @@ Or without install:
 npx explainthisrepo owner/repo
 
 # npx explainthisrepo .
+# npx explainthisrepo ./path/to/directory
+# npx explainthisrepo ./path/to/file.py
+# npx explainthisrepo owner/repo/path/to/file.py
 ```
 
 ## How it works
