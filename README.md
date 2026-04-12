@@ -78,23 +78,35 @@ Install globally and use forever:
 ```bash
 npm install -g explainthisrepo
 explainthisrepo owner/repo
+```
 
+<details>
+<pre>
+<code>
 # explainthisrepo .
 # explainthisrepo ./path/to/directory
 # explainthisrepo ./path/to/file.py
 # explainthisrepo owner/repo/path/to/file.py
-```
+</details>
+</pre>
+</code>
 
 Or without install:
 
 ```bash
 npx explainthisrepo owner/repo
+```
 
+<details>
+<pre>
+<code>
 # npx explainthisrepo .
 # npx explainthisrepo ./path/to/directory
 # npx explainthisrepo ./path/to/file.py
 # npx explainthisrepo owner/repo/path/to/file.py
-```
+</code>
+</pre>
+</details>
 
 ## How it works
 
