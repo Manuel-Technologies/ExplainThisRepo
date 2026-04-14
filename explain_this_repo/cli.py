@@ -407,15 +407,14 @@ def _handle_github_file_mode(args, llm: str | None) -> None:
     try:
         owner, repo, file_path = resolve_github_file_target(args.repository)
     except ValueError as e:
-        _handle_github_file_error(e)
+        print(f"error: {str(e)}")
         raise SystemExit(1)
 
     try:
         with console.status(f"Fetching {owner}/{repo}/{file_path}...", spinner="dots"):
             read_result = fetch_file_result(owner, repo, file_path)
-            _validate_github_file_result(read_result)
     except Exception as e:
-        _handle_github_file_error(e)
+        print(f"error: {str(e)}")
         raise SystemExit(1)
 
     display_path = f"{owner}/{repo}/{read_result.path}"
