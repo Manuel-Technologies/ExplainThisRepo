@@ -8,7 +8,7 @@ _SAMPLE_SIZE = 4_096
 
 
 @dataclass(frozen=True, slots=True)
-class LocalFileReadResult:
+class FileReadResult:
     path: str
     name: str
     extension: str
@@ -99,7 +99,7 @@ def build_file_read_result(
     raw: bytes,
     size_bytes: int,
     max_bytes: int = _MAX_DEFAULT_BYTES,
-) -> LocalFileReadResult:
+) -> FileReadResult:
     if max_bytes <= 0:
         raise ValueError("max_bytes must be greater than 0")
 
@@ -112,7 +112,7 @@ def build_file_read_result(
     content = _decode_text(bounded)
 
     file_path = Path(path)
-    return LocalFileReadResult(
+    return FileReadResult(
         path=path,
         name=file_path.name,
         extension=file_path.suffix.lower().lstrip("."),
@@ -122,7 +122,7 @@ def build_file_read_result(
     )
 
 
-def read_local_file(path: str, max_bytes: int = _MAX_DEFAULT_BYTES) -> LocalFileReadResult:
+def read_local_file(path: str, max_bytes: int = _MAX_DEFAULT_BYTES) -> FileReadResult:
     if max_bytes <= 0:
         raise ValueError("max_bytes must be greater than 0")
 

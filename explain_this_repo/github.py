@@ -10,7 +10,7 @@ from urllib.parse import quote
 import requests
 
 from explain_this_repo.config import load_config
-from explain_this_repo.file_reader import LocalFileReadResult, build_file_read_result
+from explain_this_repo.file_reader import FileReadResult, build_file_read_result
 
 GITHUB_API_BASE = "https://api.github.com"
 _MAX_FILE_BYTES = 32_000
@@ -323,7 +323,7 @@ def fetch_file_result(
     file_path: str,
     token: Optional[str] = None,
     max_bytes: int = _MAX_FILE_BYTES,
-) -> LocalFileReadResult:
+) -> FileReadResult:
     normalized_path = _normalize_github_path(file_path)
     session = _make_session(token)
 
