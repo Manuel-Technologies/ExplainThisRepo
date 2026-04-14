@@ -324,61 +324,6 @@ def _extract_file_signals(read_result) -> dict:
         "size_bytes": read_result.size_bytes,
     }
 
-
-def _validate_github_file_result(read_result) -> None:
-    content = getattr(read_result, "content", None)
-    size_bytes = getattr(read_result, "size_bytes", None)
-    is_text = getattr(read_result, "is_text", None)
-
-    if not getattr(read_result, "path", None):
-        raise ValueError("GitHub path does not resolve to a file.")
-
-    if is_text is not True:
-        raise ValueError("binary GitHub files are not supported.")
-
-    if not isinstance(content, str):
-        raise ValueError("GitHub file content is unavailable.")
-
-    if size_bytes is None:
-        raise ValueError("GitHub file size is unavailable.")
-
-    if int(size_bytes) > _MAX_GITHUB_FILE_BYTES:
-        raise ValueError(
-            f"GitHub file too large ({size_bytes} bytes, limit {_MAX_GITHUB_FILE_BYTES} bytes)."
-        )
-
-
-def _handle_github_file_error(error: Exception) -> None:
-    message = str(error).strip()
-    lowered = message.lower()
-
-    if "directory" in lowered and "not a file" in lowered:
-        print("error: GitHub path resolves to a directory, not a file.")
-        return
-
-    if "404" in message or "not found" in lowered:
-        print("error: GitHub 404: file not found.")
-        return
-
-    if "binary" in lowered:
-        print("error: binary GitHub files are not supported.")
-        return
-
-    if "too large" in lowered or "truncated" in lowered:
-        print("error: GitHub file is too large to explain safely.")
-        return
-
-    if "rate limit" in lowered:
-        print("error: GitHub API rate limit exceeded.")
-        return
-
-    if "forbidden" in lowered or "permission" in lowered or "private" in lowered:
-        print("error: GitHub permission denied. Check access for private repositories.")
-        return
-
-    print("error: could not fetch GitHub file.")
-
-
 def _handle_file_mode(args, llm: str | None) -> None:
     if args.stack:
         print("error: --stack is not supported for file targets")
@@ -462,15 +407,14 @@ def _handle_github_file_mode(args, llm: str | None) -> None:
     try:
         owner, repo, file_path = resolve_github_file_target(args.repository)
     except ValueError as e:
-        _handle_github_file_error(e)
+        print(f"error: {str(e)}")
         raise SystemExit(1)
 
     try:
         with console.status(f"Fetching {owner}/{repo}/{file_path}...", spinner="dots"):
             read_result = fetch_file_result(owner, repo, file_path)
-            _validate_github_file_result(read_result)
     except Exception as e:
-        _handle_github_file_error(e)
+        print(f"error: {str(e)}")
         raise SystemExit(1)
 
     display_path = f"{owner}/{repo}/{read_result.path}"
