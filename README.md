@@ -43,6 +43,7 @@ explainthisrepo owner/repo
 # explainthisrepo ./path/to/directory
 # explainthisrepo ./path/to/file.py
 # explainthisrepo owner/repo/path/to/file.py
+# explainthisrepo owner/repo/path/to/directory
 ```
 
 Alternatively,
@@ -87,6 +88,7 @@ explainthisrepo owner/repo
 # explainthisrepo ./path/to/directory
 # explainthisrepo ./path/to/file.py
 # explainthisrepo owner/repo/path/to/file.py
+# explainthisrepo owner/repo/path/to/directory
 </details>
 </pre>
 </code>
@@ -104,6 +106,7 @@ npx explainthisrepo owner/repo
 # npx explainthisrepo ./path/to/directory
 # npx explainthisrepo ./path/to/file.py
 # npx explainthisrepo owner/repo/path/to/file.py
+# npx explainthisrepo owner/repo/path/to/directory
 </code>
 </pre>
 </details>
@@ -216,6 +219,7 @@ explainthisrepo github.com/owner/repo
 explainthisrepo https://github.com/owner/repo/issues/123
 explainthisrepo https://github.com/owner/repo?tab=readme
 explainthisrepo git@github.com:owner/repo.git
+explainthisrepo owner/repo/path/to/directory
 explainthisrepo owner/repo/path/to/file.py
 explainthisrepo .
 explainthisrepo ./path/to/directory
@@ -399,6 +403,34 @@ This is different from local file analysis:
 ```bash
 explainthisrepo ./path/to/file.py
 ```
+
+## GitHub Directory Analysis
+
+ExplainThisRepo can analyze a specific directory inside a GitHub repository without cloning it.
+
+```bash
+explainthisrepo owner/repo/path/to/directory
+```
+Supports all explanation modes:
+```bash
+explainthisrepo owner/repo/path/to/directory --quick
+explainthisrepo owner/repo/path/to/directory --simple
+explainthisrepo owner/repo/path/to/directory --detailed
+```
+
+When analyzing a GitHub directory:
+
+- Directory contents are fetched via the GitHub API
+
+- Only structure and metadata are used (no full repo fetch)
+
+- Signals include files, subdirectories, and extension distribution
+
+- The explanation focuses on the directory’s role and structure
+
+
+`--stack` is not supported for directory targets.
+
 ### Custom output
 
 `--output`, `-o` → Specify output file or directory (default: `EXPLAIN.md`)
