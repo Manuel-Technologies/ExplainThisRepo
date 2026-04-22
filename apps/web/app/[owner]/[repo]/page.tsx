@@ -52,6 +52,13 @@ fetch(process.env.NEXT_PUBLIC_WAITLIST_URL!, {
 
         {!submitted ? (
           <>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submit();
+              }}
+             className="space-y-4"
+          >
             <input
               type="email"
               placeholder="Enter your email"
@@ -61,12 +68,13 @@ fetch(process.env.NEXT_PUBLIC_WAITLIST_URL!, {
             />
 
             <button
-              onClick={submit}
+              type="submit"
               disabled={loading}
               className="bg-black text-white px-4 py-2 rounded"
             >
               {loading ? "Submitting..." : "Notify me"}
             </button>
+            </form>
           </>
         ) : (
           <p className="text-green-600">
