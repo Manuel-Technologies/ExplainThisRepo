@@ -36,42 +36,36 @@ def _prompt_provider() -> str:
     for opt in options:
         err.print(f"  {opt}")
 
-    err.print(" > ", end="")
+    err.print(" >", end="")
 
-    index = None  # None = input mode
+    index = None
 
-    def move_up(n):
-        sys.stdout.write(f"\033[{n}A")
+    total_lines = len(options) + 2
 
-    def move_down(n):
-        sys.stdout.write(f"\033[{n}B")
+    def move_to_option(i):
+        sys.stdout.write(f"\033[{total_lines - i}A")
+
+    def restore_cursor(i):
+        sys.stdout.write(f"\033[{total_lines - i}B")
 
     def clear_line():
         sys.stdout.write("\033[2K\r")
 
-    def update_line(i, selected):
-        # lines: title + blank + options + prompt
-        # option line position from bottom = (len(options) - i + 1)
-        offset = len(options) - i + 1
-
-        move_up(offset)
+    def set_option(i, selected):
+        move_to_option(i)
         clear_line()
-
-        if selected:
-            sys.stdout.write(f"> {options[i]}")
-        else:
-            sys.stdout.write(f"  {options[i]}")
-
-        move_down(offset)
+        prefix = ">" if selected else " "
+        sys.stdout.write(f"{prefix} {options[i]}")
+        restore_cursor(i)
         sys.stdout.flush()
 
-    def update_prompt(active):
-        move_up(1)
+    def set_prompt(active):
+        sys.stdout.write("\033[1A")
         clear_line()
         if active:
-            sys.stdout.write(" > ")
+            sys.stdout.write(" >")
+        sys.stdout.write("\033[1B")
         sys.stdout.flush()
-        move_down(1)
 
     while True:
         key = readchar.readkey()
@@ -79,28 +73,28 @@ def _prompt_provider() -> str:
         if key in (readchar.key.UP, readchar.key.DOWN):
             if index is None:
                 index = len(options) - 1 if key == readchar.key.UP else 0
-                update_prompt(False)
-                update_line(index, True)
+                set_prompt(False)
+                set_option(index, True)
             else:
                 prev = index
 
                 if key == readchar.key.UP:
                     if index == 0:
-                        update_line(index, False)
+                        set_option(index, False)
                         index = None
-                        update_prompt(True)
+                        set_prompt(True)
                         continue
                     index -= 1
                 else:
                     if index == len(options) - 1:
-                        update_line(index, False)
+                        set_option(index, False)
                         index = None
-                        update_prompt(True)
+                        set_prompt(True)
                         continue
                     index += 1
 
-                update_line(prev, False)
-                update_line(index, True)
+                set_option(prev, False)
+                set_option(index, True)
 
         elif key == readchar.key.ENTER:
             if index is not None:
