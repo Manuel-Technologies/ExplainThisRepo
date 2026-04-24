@@ -18,22 +18,102 @@ PROVIDERS = {
 
 
 def _prompt_provider() -> str:
+    import sys
+    import readchar
+
+    options = [
+        "  1) Gemini",
+        "  2) OpenAI",
+        "  3) Ollama (local or cloud-routed)",
+        "  4) Anthropic (Claude)",
+        "  5) Groq",
+        "  6) OpenRouter",
+    ]
+
     err.print("Select LLM provider:", style="bold")
-    err.print("  1) Gemini")
-    err.print("  2) OpenAI")
-    err.print("  3) Ollama (local)")
-    err.print("  4) Anthropic (Claude)")
-    err.print("  5) Groq")
-    err.print("  6) OpenRouter")
+    err.print()
+    for line in options:
+        err.print(line)
+    err.print("> ", end="", soft_wrap=True)
 
-    choice = input("> ").strip()
+    index = None
+    total_lines = len(options) + 2
 
-    provider = PROVIDERS.get(choice)
-    if not provider:
-        err.print("error: invalid provider selection", style="red")
-        raise SystemExit(1)
+    def move_up(n: int):
+        sys.stdout.write(f"\033[{n}A")
 
-    return provider
+    def clear_line():
+        sys.stdout.write("\033[2K")
+
+    def redraw_line(i, selected):
+        move_up(total_lines - i)
+        clear_line()
+        if selected:
+            sys.stdout.write(f"> {options[i].strip()}\n")
+        else:
+            sys.stdout.write(f"{options[i]}\n")
+        sys.stdout.flush()
+        sys.stdout.write(f"\033[{total_lines - i - 1}B")
+
+    def redraw_prompt(active: bool):
+        move_up(1)
+        clear_line()
+        if active:
+            sys.stdout.write("> ")
+        else:
+            sys.stdout.write("")
+        sys.stdout.flush()
+        sys.stdout.write("\033[1B")
+
+    while True:
+        key = readchar.readkey()
+
+        if key in (readchar.key.UP, readchar.key.DOWN):
+            if index is None:
+                index = len(options) - 1 if key == readchar.key.UP else 0
+                redraw_prompt(False)
+                redraw_line(index, True)
+            else:
+                prev = index
+                if key == readchar.key.UP:
+                    if index == 0:
+                        redraw_line(index, False)
+                        index = None
+                        redraw_prompt(True)
+                        continue
+                    index -= 1
+                else:
+                    if index == len(options) - 1:
+                        redraw_line(index, False)
+                        index = None
+                        redraw_prompt(True)
+                        continue
+                    index += 1
+
+                redraw_line(prev, False)
+                redraw_line(index, True)
+
+        elif key == readchar.key.ENTER:
+            if index is not None:
+                sys.stdout.write("\n")
+                return PROVIDERS[str(index + 1)]
+            else:
+                choice = input().strip()
+                provider = PROVIDERS.get(choice)
+                if not provider:
+                    err.print("error: invalid provider selection", style="red")
+                    raise SystemExit(1)
+                return provider
+
+        elif key.isdigit():
+            sys.stdout.write(key)
+            sys.stdout.flush()
+            choice = key + input().strip()
+            provider = PROVIDERS.get(choice)
+            if not provider:
+                err.print("error: invalid provider selection", style="red")
+                raise SystemExit(1)
+            return provider
 
 
 def _prompt_provider_config(provider: str) -> Dict[str, str]:
