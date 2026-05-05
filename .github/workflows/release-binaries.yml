@@ -125,12 +125,46 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          registry-url: https://registry.npmjs.org
           cache: npm
           cache-dependency-path: node_version/package-lock.json
 
       - name: Install Node deps
         working-directory: node_version
         run: npm ci
+
+      - name: Sync version with tag
+        working-directory: node_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          CURRENT=$(node -p "require('./package.json').version")
+
+          if [ "$VERSION" != "$CURRENT" ]; then
+            npm version $VERSION --no-git-tag-version
+          else
+            echo "Version already matches tag, skipping"
+          fi
+
+      - name: Check if version exists
+        working-directory: node_version
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+
+          if npm view "$PACKAGE_NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "Version already exists on npm"
+            exit 1
+          fi
+
+      - name: Build package tarball
+        working-directory: node_version
+        run: npm pack
+
+      - name: Verify package contains native binaries
+        working-directory: node_version
+        run: |
+          TAR=$(ls *.tgz)
+          tar -tf "$TAR" | grep "dist/native" || (echo "Missing native binaries in package" && exit 1)
 
       - name: Package check
         working-directory: node_version

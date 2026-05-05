@@ -31,6 +31,7 @@ from explain_this_repo.prompt import (
     build_file_simple_prompt,
     build_prompt,
     build_quick_prompt,
+    build_repo_map_prompt,
     build_simple_prompt,
 )
 from explain_this_repo.repo_reader import read_repo_signal_files
@@ -367,9 +368,18 @@ def _extract_directory_signals(contents: list[dict]) -> dict:
     }
 
 
+def _resolve_mode_output(args, default_output: str) -> str:
+    if args.output == "EXPLAIN.md":
+        return default_output
+    return args.output
+
+
 def _handle_file_mode(args, llm: str | None) -> None:
     if args.stack:
         print("error: --stack is not supported for file targets")
+        raise SystemExit(1)
+    if args.map:
+        print("error: --map is not supported for file targets")
         raise SystemExit(1)
 
     file_path = os.path.abspath(args.repository)
@@ -452,6 +462,9 @@ def _handle_github_file_mode(
     if args.stack:
         print("error: --stack is not supported for GitHub file targets")
         raise SystemExit(1)
+    if args.map:
+        print("error: --map is not supported for GitHub file targets")
+        raise SystemExit(1)
 
     if owner is None or repo is None or file_path is None:
         try:
@@ -532,6 +545,9 @@ def _handle_github_directory_mode(
 ) -> None:
     if args.stack:
         print("error: --stack is not supported for GitHub directory targets")
+        raise SystemExit(1)
+    if args.map:
+        print("error: --map is not supported for GitHub directory targets")
         raise SystemExit(1)
 
     if owner is None or repo is None or directory_path is None:
@@ -629,6 +645,40 @@ def _handle_directory_mode(args, llm: str | None) -> None:
         print_stack(report, args.repository, "")
         return
 
+    if args.map:
+        with console.status("Reading repository files...", spinner="dots"):
+            read_result = read_local_repo_signal_files(local_path)
+
+        readme_content = read_result.key_files.get(
+            next(
+                (k for k in read_result.key_files if k.lower().startswith("readme")),
+                "",
+            ),
+            None,
+        )
+
+        prompt = build_repo_map_prompt(
+            repo_name=local_path,
+            description=None,
+            readme=readme_content,
+            tree_text=read_result.tree_text,
+            files_text=read_result.files_text,
+        )
+
+        with console.status("Generating repo map...", spinner="dots"):
+            output = generate_with_exit(prompt, llm=llm)
+
+        output_path = _resolve_mode_output(args, "REPO_MAP.md")
+        print(f"Writing {output_path}...")
+        write_output(output, output_path)
+
+        word_count = len(output.split())
+        print(f"{output_path} generated successfully 🎉")
+        print(f"Words: {word_count}")
+        print(f"Location: {os.path.abspath(output_path)}")
+        print(f"Open {output_path} to navigate the codebase.")
+        return
+
     if args.quick:
         with console.status("Reading repository files...", spinner="dots"):
             read_result = read_local_repo_signal_files(local_path)
@@ -722,6 +772,38 @@ def _handle_github_mode(args, llm: str | None) -> None:
         print_stack(report, f"{owner}/{repo}", "")
         return
 
+    if args.map:
+        try:
+            with console.status(f"Fetching {owner}/{repo}...", spinner="dots"):
+                repo_data = fetch_repo(owner, repo)
+                readme = fetch_readme(owner, repo)
+                read_result = read_repo_signal_files(owner, repo)
+        except Exception as e:
+            print(f"error: {e}")
+            raise SystemExit(1)
+
+        prompt = build_repo_map_prompt(
+            repo_name=repo_data.get("full_name"),
+            description=repo_data.get("description"),
+            readme=readme,
+            tree_text=read_result.tree_text,
+            files_text=read_result.files_text,
+        )
+
+        with console.status("Generating repo map...", spinner="dots"):
+            output = generate_with_exit(prompt, llm=llm)
+
+        output_path = _resolve_mode_output(args, "REPO_MAP.md")
+        print(f"Writing {output_path}...")
+        write_output(output, output_path)
+
+        word_count = len(output.split())
+        print(f"{output_path} generated successfully 🎉")
+        print(f"Words: {word_count}")
+        print(f"Location: {os.path.abspath(output_path)}")
+        print(f"Open {output_path} to navigate the codebase.")
+        return
+
     try:
         with console.status(f"Fetching {owner}/{repo}...", spinner="dots"):
             repo_data = fetch_repo(owner, repo)
@@ -790,49 +872,79 @@ def _handle_github_mode(args, llm: str | None) -> None:
 def main():
     parser = argparse.ArgumentParser(
         prog="explainthisrepo",
-        description="The fastest way to understand any codebase in plain English",
-        epilog="Examples:\n"
+        description="The fastest way to understand any unfamiliar codebase using real project signals. Not blind AI guessing. Signals first. LLM second.",
+        epilog=
+        "Aliases:\n\n"
+        "  etr                          short alias for faster typing\n"
+        "  explain-this-repo            readable alias\n"
+        "  explainthisrepo              primary command\n\n"
+
+        "Input formats:\n\n"
         "  explainthisrepo owner/repo\n"
         "  explainthisrepo https://github.com/owner/repo\n"
         "  explainthisrepo github.com/owner/repo\n"
         "  explainthisrepo git@github.com:owner/repo.git\n"
+        "  explainthisrepo owner/repo/path/to/directory\n"
+        "  explainthisrepo owner/repo/path/to/file.py\n"
+        "  explainthisrepo .\n"
+        "  explainthisrepo ./path/to/directory\n"
+        "  explainthisrepo ./path/to/file.py\n\n"
+
+        "Modes:\n\n"
         "  explainthisrepo owner/repo --detailed\n"
         "  explainthisrepo owner/repo --quick\n"
         "  explainthisrepo owner/repo --simple\n"
         "  explainthisrepo owner/repo --stack\n"
-        "  explainthisrepo owner/repo/packages/react-dom\n"
-        "  explainthisrepo owner/repo/packages/react-dom --quick\n"
-        "  explainthisrepo owner/repo/packages/react-dom --simple\n"
-        "  explainthisrepo owner/repo/packages/react-dom --detailed\n"
-        "  explainthisrepo init\n"
-        "  explainthisrepo owner/repo --llm gemini\n"
-        "  explainthisrepo owner/repo --llm openai\n"
-        "  explainthisrepo owner/repo --llm ollama\n"
+        "  explainthisrepo owner/repo --map\n\n"
+
+        "Local directories analysis:\n\n"
         "  explainthisrepo .\n"
         "  explainthisrepo ./path/to/directory\n"
         "  explainthisrepo . --detailed\n"
         "  explainthisrepo . --quick\n"
         "  explainthisrepo . --simple\n"
         "  explainthisrepo . --stack\n"
+        "  explainthisrepo . --map\n\n"
+
+        "Files and directories analysis:\n\n"
+        "  explainthisrepo owner/repo/path/to/directory\n"
+        "  explainthisrepo owner/repo/path/to/directory --quick\n"
+        "  explainthisrepo owner/repo/path/to/directory --simple\n"
+        "  explainthisrepo owner/repo/path/to/directory --detailed\n"
         "  explainthisrepo ./path/to/file.py\n"
         "  explainthisrepo ./path/to/file.py --quick\n"
         "  explainthisrepo ./path/to/file.py --simple\n"
-        "  explainthisrepo ./path/to/file.py --detailed\n"
+        "  explainthisrepo ./path/to/file.py --detailed\n\n"
+
+        "Providers:\n\n"
+        "  explainthisrepo owner/repo --llm gemini\n"
+        "  explainthisrepo owner/repo --llm openai\n"
+        "  explainthisrepo owner/repo --llm ollama\n"
+        "  explainthisrepo owner/repo --llm anthropic\n"
+        "  explainthisrepo owner/repo --llm groq\n"
+        "  explainthisrepo owner/repo --llm openrouter\n\n"
+
+        "Output:\n\n"
         "  explainthisrepo owner/repo --output file.md\n"
         "  explainthisrepo owner/repo --output path/to/file.md\n"
         "  explainthisrepo owner/repo --output path/to/directory/file.md\n"
-        "  explainthisrepo owner/repo --output path/to/directory\n"
+        "  explainthisrepo owner/repo --output path/to/directory\n\n"
+
+        "Setup:\n\n"
+        "  explainthisrepo init\n"
         "  explainthisrepo --doctor\n"
-        "  explainthisrepo --doctor --llm gemini\n"
-        "  explainthisrepo --doctor --llm openai\n"
-        "  explainthisrepo --doctor --llm ollama\n"
-        "  explainthisrepo --version\n"
-        "GitHub token:\n"
+        "  explainthisrepo --doctor --llm <model name>\n"
+        "  explainthisrepo --version\n\n"
+
+        "GitHub token:\n\n"
         "  Access private repos and higher rate limits\n"
         "  Run:\n"
         "   explainthisrepo init\n"
         "  Or set:\n"
-        "   GITHUB_TOKEN=ghp_xxx explainthisrepo owner/repo\n",
+        "   GITHUB_TOKEN=ghp_xxx explainthisrepo owner/repo\n\n"
+
+        "Support:\n\n"
+        "  Report bugs or feedback to caleb@explainthisrepo.com",
         formatter_class=argparse.RawTextHelpFormatter,
     )
 
@@ -884,22 +996,27 @@ def main():
     mode_group.add_argument(
         "--quick",
         action="store_true",
-        help="Quick summary mode",
+        help="Quick, fast overview mode",
     )
     mode_group.add_argument(
         "--simple",
         action="store_true",
-        help="Simple summary mode",
+        help="Simplified summary mode",
     )
     mode_group.add_argument(
         "--detailed",
         action="store_true",
-        help="Detailed explanation mode",
+        help="Full detailed breakdown mode",
     )
     mode_group.add_argument(
         "--stack",
         action="store_true",
-        help="Stack detection mode",
+        help="Stack detection mode. No LLM calls are made",
+    )
+    mode_group.add_argument(
+        "--map",
+        action="store_true",
+        help="Navigation system map that shows where to start, what matters and what to ignore before touching it",
     )
 
     args = parser.parse_args()

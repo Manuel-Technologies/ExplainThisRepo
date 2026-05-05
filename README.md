@@ -1,8 +1,8 @@
 # ExplainThisRepo
 
-_The fastest way to understand any codebase in plain English using real project signals. Not blind AI summarization._
+_The fastest way to understand any unfamiliar codebase using real project signals. Not blind AI guessing. Signals first. LLM second_
 
-ExplainThisRepo analyzes real project signals; configs, entrypoints, manifests, dependencies graph, file structure and high-signal files producing a clear, structured `EXPLAIN.md` that explains what the codebase actually does and how it is organized in plain English.
+ExplainThisRepo analyzes real project signals; configs, entrypoints, manifests, dependencies graph, structures and high-signal files producing a clear, structured `EXPLAIN.md` that shows you what the codebase actually does, how it is organized, where to start, what to ignore, and what matters before touching unfamiliar codebases.
 
 [![PyPI Version](https://img.shields.io/pypi/v/explainthisrepo?color=blue)](https://pypi.org/project/explainthisrepo/)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/explainthisrepo?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/explainthisrepo)
@@ -17,17 +17,17 @@ ExplainThisRepo analyzes real project signals; configs, entrypoints, manifests, 
 ## Key Features
 
 - Understand any GitHub repository in seconds
-- Derives architectural summaries from repository structure and code signals.
-Not blind AI summarization.
-- Deterministic repo signal extractor that feeds LLMs correctly
-- Translates complex code structures into plain English
+- System map that shows you where to start, what to ignore, what matters and why
+- Deterministic repo signal extractor that feeds LLMs correctly.
 - Speeds up understanding of unfamiliar codebases
 - Solves the "**garbage in, garbage out**" problem specifically for codebases
-- Extract architecture signals from configs, entrypoints, and manifests
-- Works with GitHub repositories, local directories, private repositories, individual files and monorepos
+- Multiple modes (quick, simple, detailed) that translates complex repository structure and code signals into architectural summaries. Not blind AI guessing. Signals first. LLM second
+- Works with GitHub repositories, local repositories, GitHub directories, local directories, GitHub files and local files
+- Supports private repositories and monorepos
 - Zero-cloning and remote analysis
-- Outputs the explanation to an `EXPLAIN.md` file in your current directory, prints it directly in the terminal, or a specified output file (`.txt`, `.pdf`, `.docx`)
-- Multiple explanation modes (quick, simple, detailed)
+- Extract architecture signals from configs, entrypoints, and manifests
+- Outputs the explanation to an `EXPLAIN.md` file in your current directory, prints it directly in the terminal, or a specified output file (`.txt`, `.pdf`, `.docx`, `.md`)
+- Additional tools: stack detection, repo map
 
 ## Installation
 
@@ -72,7 +72,7 @@ pip install explainthisrepo[groq]
 
 Replace `owner/repo` with the GitHub repository identifier (e.g., `facebook/react`, `torvalds/linux`).
 
-### Option 2: Install with npm (prebuilt binary, no Python required)
+### Option 2: Install with npm (prebuilt binary, no Python install required)
 
 Install globally and use forever:
 
@@ -84,14 +84,14 @@ explainthisrepo owner/repo
 <details>
 <pre>
 <code>
-# explainthisrepo .
-# explainthisrepo ./path/to/directory
-# explainthisrepo ./path/to/file.py
-# explainthisrepo owner/repo/path/to/file.py
-# explainthisrepo owner/repo/path/to/directory
-</details>
-</pre>
+explainthisrepo .
+explainthisrepo ./path/to/directory
+explainthisrepo ./path/to/file.py
+explainthisrepo owner/repo/path/to/file.py
+explainthisrepo owner/repo/path/to/directory
 </code>
+</pre>
+</details>
 
 Or without install:
 
@@ -102,22 +102,22 @@ npx explainthisrepo owner/repo
 <details>
 <pre>
 <code>
-# npx explainthisrepo .
-# npx explainthisrepo ./path/to/directory
-# npx explainthisrepo ./path/to/file.py
-# npx explainthisrepo owner/repo/path/to/file.py
-# npx explainthisrepo owner/repo/path/to/directory
+npx explainthisrepo .
+npx explainthisrepo ./path/to/directory
+npx explainthisrepo ./path/to/file.py
+npx explainthisrepo owner/repo/path/to/file.py
+npx explainthisrepo owner/repo/path/to/directory
 </code>
 </pre>
 </details>
 
 ## How it works
 
-ExplainThisRepo uses a hybrid architecture:
+ExplainThisRepo uses a single source of truth architecture:
 
-- Python → core implementaion (analysis, prompts, providers, output)
-- npm → ships prebuilt native binaries (no Python required)
-- pip → installs the full Python package
+- Python is the core implementation (analysis, prompts, providers, output)
+- npm launches prebuilt native binaries (no Python install required)
+- pip installs the full Python package
 
 > The npm and pip versions run the same core engine.
 
@@ -139,12 +139,10 @@ Prebuilt standalone binaries are available for macOS, Linux, and Windows.
 
 > Standalone binaries require no Python or Node installation and run as a single executable.
 
-Download the latest release:
-
-[github.com/calchiwo/ExplainThisRepo/releases/latest](https://github.com/calchiwo/ExplainThisRepo/releases/latest)
+Download the latest release: [ExplainThisRepo latest releases](https://github.com/calchiwo/ExplainThisRepo/releases/latest)
 
 Or install directly:
-
+<details>
 macOS
 
 ```bash
@@ -153,6 +151,7 @@ chmod +x explainthisrepo
 ```
 
 Linux
+
 ```bash
 curl -L https://github.com/calchiwo/ExplainThisRepo/releases/latest/download/explainthisrepo-linux-x64 -o explainthisrepo
 chmod +x explainthisrepo
@@ -163,6 +162,7 @@ Windows (PowerShell)
 ```powershell
 curl -L https://github.com/calchiwo/ExplainThisRepo/releases/latest/download/explainthisrepo-win-x64.exe -o explainthisrepo.exe
 ```
+</details>
 
 ## Configuration
 
@@ -182,7 +182,7 @@ explainthisrepo init
 # or npx explainthisrepo init
 ```
 
-> For details about how initialization works, see [docs/INIT.md](docs/INIT.md).
+> For details about how initialization works, see [docs/INIT.md](https://github.com/calchiwo/ExplainThisRepo/blob/main/docs/INIT.md).
 
 ## GitHub token Access (Private Repos & Rate Limits)
 
@@ -197,7 +197,7 @@ Run:
 explainthisrepo init
 ```
 
-For step-by-step instructions, see [docs/GITHUB_TOKEN.md](docs/GITHUB_TOKEN.md)
+For step-by-step instructions, see [docs/GITHUB_TOKEN.md](https://github.com/calchiwo/ExplainThisRepo/blob/main/docs/GITHUB_TOKEN.md)
 
 ## Flag options
 
@@ -211,6 +211,8 @@ For step-by-step instructions, see [docs/GITHUB_TOKEN.md](docs/GITHUB_TOKEN.md)
 
 - `--stack` → Tech stack breakdown from repo signals
 
+- `--map` → System map for understanding a codebase before changing it
+
 - `--version` → Check installed CLI version
 
 - `--help` → Show usage guide
@@ -221,7 +223,7 @@ For step-by-step instructions, see [docs/GITHUB_TOKEN.md](docs/GITHUB_TOKEN.md)
 
 - `--output` / `-o` → Specify output file or directory (default: `EXPLAIN.md`)
 
-## Flexible Repository and Local Directory Input
+## Flexible Input Types
 
 Accepts various formats for repository input, full GitHub URLs (with or without https), `owner/repo` format, issue links, query strings, and SSH clone links
 
@@ -238,7 +240,7 @@ explainthisrepo ./path/to/directory
 explainthisrepo ./path/to/file.py
 ```
 
-All inputs are normalized internally to `owner/repo`.
+GitHub inputs are normalized internally to `owner/repo`.
 
 ## CLI aliases
 
@@ -334,6 +336,28 @@ explainthisrepo owner/repo --stack
 ```
 ![Stack detector Output](assets/stack-command-output.png)
 
+### Repo map
+
+Navigation system map for understanding unfamiliar codebases that shows you where to start, what matters and what to ignore before touching it:
+
+```bash
+explainthisrepo owner/repo --map
+explainthisrepo . --map
+```
+
+By default, repo map mode writes to `REPO_MAP.md`.
+
+The map focuses on:
+
+- where to start reading
+- the likely main flow through the project
+- important files and why they matter
+- visible architecture boundaries
+- files or folders to ignore first
+- open questions that cannot be determined from repo signals
+
+![Repo map Output](assets/repo-map-command-output.png)
+
 ## Local Directory Analysis
 
 ExplainThisRepo can analyze local directories directly in the terminal, using the same modes and output formats as GitHub repositories
@@ -345,12 +369,17 @@ explainthisrepo ./path/to/directory
 
 This works with all existing modes:
 
+<details>
+
 ```bash
 explainthisrepo . --quick
 explainthisrepo . --simple
 explainthisrepo . --detailed
 explainthisrepo . --stack
+explainthisrepo . --map
 ```
+
+</details>
 
 When analyzing a local directory:
 - Repository structure is derived from the filesystem
@@ -363,7 +392,7 @@ This allows analysis of projects directly from the local filesystem, without req
 
 ## File Analysis
 
-ExplanThisRepo analyzes individual files directly
+ExplainThisRepo analyzes individual files directly
 
 ```bash
 explainthisrepo ./path/to/file.py
@@ -371,11 +400,15 @@ explainthisrepo ./path/to/file.py
 
 Supports all explanation modes:
 
+<details>
+
 ```bash
 explainthisrepo ./file.py --quick
 explainthisrepo ./file.py --simple
 explainthisrepo ./file.py --detailed
 ```
+
+</details>
 
 When analyzing a file:
 - The file is read safely with encoding and size limits
@@ -392,17 +425,23 @@ explainthisrepo owner/repo/path/to/file.py
 ```
 Supports all explanation modes:
 
+<details>
+
 ```bash
 explainthisrepo owner/repo/path/to/file.py --quick
 explainthisrepo owner/repo/path/to/file.py --simple
 explainthisrepo owner/repo/path/to/file.py --detailed
 ```
 
+</details>
+
 When analyzing a GitHub file:
 - The file is fetched directly via the GitHub API
-- Only valid text files are processed (binary files are rejected)
-- File size is capped to prevent unsafe or truncated analysis
+- Raw bytes are passed into a unified ingestion pipeline
+- Binary detection, decoding, and size limits are handled in one place
+- File ingestion is identical to local file analysis
 - The explanation focuses on the file’s purpose, logic, and behavior
+- This removes divergence between local and GitHub file handling
 
 Input format must be:
 
@@ -424,22 +463,23 @@ ExplainThisRepo can analyze a specific directory inside a GitHub repository with
 explainthisrepo owner/repo/path/to/directory
 ```
 Supports all explanation modes:
+
+<details>
+
 ```bash
 explainthisrepo owner/repo/path/to/directory --quick
 explainthisrepo owner/repo/path/to/directory --simple
 explainthisrepo owner/repo/path/to/directory --detailed
 ```
 
+</details>
+
 When analyzing a GitHub directory:
 
 - Directory contents are fetched via the GitHub API
-
 - Only structure and metadata are used (no full repo fetch)
-
 - Signals include files, subdirectories, and extension distribution
-
 - The explanation focuses on the directory’s role and structure
-
 
 `--stack` is not supported for directory targets.
 
@@ -521,9 +561,15 @@ you can also run ExplainThisRepo using the Node.js version:
 npx explainthisrepo owner/repo
 ```
 
+## Philosophy
+
+I built this project with a personal motivation: my mum makes me fall in love with life again. That feeling of mental clarity, simplicity, grounded understanding and appreciation is what I wanted to bring into how developers understand codebases.
+
+I believe understanding code should feel less overwhelming and more approachable. If this tool still makes you feel overwhelmed when reading code, I failed.
+
 ## Special Thanks
 
-- @Spectra010s for implementing the Node.js version of ExplainThisRepo and improving installation support for mobile environments like Termux
+- @Spectra010s for implementing the initial Node.js version of ExplainThisRepo and improving installation support for mobile environments like Termux
 - @HalxDocs for implementing the `--detailed` mode for deeper architectural explanations
 
 ## Contributions

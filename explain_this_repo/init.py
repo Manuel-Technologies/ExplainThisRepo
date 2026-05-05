@@ -18,22 +18,97 @@ PROVIDERS = {
 
 
 def _prompt_provider() -> str:
+    import sys
+    import readchar
+
+    options = [
+        "1) Gemini",
+        "2) OpenAI",
+        "3) Ollama (local or cloud-routed)",
+        "4) Anthropic (Claude)",
+        "5) Groq",
+        "6) OpenRouter",
+    ]
+
     err.print("Select LLM provider:", style="bold")
-    err.print("  1) Gemini")
-    err.print("  2) OpenAI")
-    err.print("  3) Ollama (local)")
-    err.print("  4) Anthropic (Claude)")
-    err.print("  5) Groq")
-    err.print("  6) OpenRouter")
+    err.print()
 
-    choice = input("> ").strip()
+    for opt in options:
+        err.print(f"  {opt}")
 
-    provider = PROVIDERS.get(choice)
-    if not provider:
-        err.print("error: invalid provider selection", style="red")
-        raise SystemExit(1)
+    err.print(" >", end="")
 
-    return provider
+    index = None
+
+    total_option_lines = len(options)
+
+    def goto_option(i):
+        sys.stdout.write(f"\033[{total_option_lines - i}A")
+
+    def back_to_prompt(i):
+        sys.stdout.write(f"\033[{total_option_lines - i}B")
+
+    def clear_line():
+        sys.stdout.write("\033[2K\r")
+
+    def set_line(i, selected):
+        goto_option(i)
+        clear_line()
+        if selected:
+            sys.stdout.write(f"> {options[i]}")
+        else:
+            sys.stdout.write(f"  {options[i]}")
+        back_to_prompt(i)
+        sys.stdout.flush()
+
+    while True:
+        key = readchar.readkey()
+
+        if key in (readchar.key.UP, readchar.key.DOWN):
+            if index is None:
+                # enter navigation mode
+                index = len(options) - 1 if key == readchar.key.UP else 0
+                set_line(index, True)
+            else:
+                prev = index
+
+                if key == readchar.key.UP:
+                    if index == 0:
+                        set_line(index, False)
+                        index = None
+                        continue
+                    index -= 1
+                else:
+                    if index == len(options) - 1:
+                        set_line(index, False)
+                        index = None
+                        continue
+                    index += 1
+
+                set_line(prev, False)
+                set_line(index, True)
+
+        elif key == readchar.key.ENTER:
+            if index is not None:
+                print()
+                return PROVIDERS[str(index + 1)]
+            else:
+                choice = input().strip()
+                provider = PROVIDERS.get(choice)
+                if not provider:
+                    err.print("error: invalid provider selection", style="red")
+                    raise SystemExit(1)
+                return provider
+
+        elif key.isdigit():
+            sys.stdout.write(key)
+            sys.stdout.flush()
+            choice = key + input().strip()
+            provider = PROVIDERS.get(choice)
+            if not provider:
+                err.print("error: invalid provider selection", style="red")
+                raise SystemExit(1)
+            return provider
 
 
 def _prompt_provider_config(provider: str) -> Dict[str, str]:
